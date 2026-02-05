@@ -22,6 +22,12 @@ from urllib.parse import urlparse
 
 
 def html_scan(url):
+    """
+    Performs static HTML inspection to detect phishing-related indicators.
+    Does NOT execute JavaScript or render the page.
+    Returns structured signals only.
+    """
+
     signals = {
         "html_fetched": False,
         "has_form": False,
@@ -33,51 +39,56 @@ def html_scan(url):
         "external_script_loaded": False
     }
 
+    # ---- Fetch HTML safely ----
     try:
         response = requests.get(url, timeout=5)
-        signals["html_fetched"] = True
         html = response.text
+        signals["html_fetched"] = True
     except Exception:
-        return signals  # fail safely
+        # Fail safely – no crash, no verdict
+        return signals
 
     soup = BeautifulSoup(html, "html.parser")
     page_domain = urlparse(url).netloc
 
-    # -------- Form analysis --------
+    # ---- Form analysis ----
     forms = soup.find_all("form")
     if forms:
         signals["has_form"] = True
 
     for form in forms:
-        # password field
+        # Detect password field
         if form.find("input", {"type": "password"}):
             signals["has_password_input"] = True
 
-        # form action domain
+        # Detect external form action
         action = form.get("action")
         if action:
             action_domain = urlparse(action).netloc
             if action_domain and action_domain != page_domain:
                 signals["external_form_action"] = True
 
-    # -------- Hidden inputs --------
+    # ---- Hidden inputs ----
     if soup.find("input", {"type": "hidden"}):
         signals["hidden_inputs_present"] = True
 
-    # -------- Hidden elements (CSS) --------
-    hidden_style = soup.find_all(
+    # ---- Hidden elements via CSS ----
+    hidden_elements = soup.find_all(
         style=re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden", re.I)
     )
-    if hidden_style:
+    if hidden_elements:
         signals["hidden_elements_present"] = True
 
-    # -------- JavaScript scanning --------
+    # ---- Static JavaScript inspection ----
     scripts = soup.find_all("script")
     for script in scripts:
         script_text = script.string or ""
+
+        # Obfuscation patterns
         if re.search(r"eval\(|document\.write\(|atob\(|btoa\(", script_text):
             signals["js_obfuscation_detected"] = True
 
+        # External script loading
         src = script.get("src")
         if src:
             src_domain = urlparse(src).netloc
@@ -85,6 +96,7 @@ def html_scan(url):
                 signals["external_script_loaded"] = True
 
     return signals
+
 
 
 # ---- local testing only ----
