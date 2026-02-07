@@ -94,8 +94,10 @@ def html_scan(url):
             src_domain = urlparse(src).netloc
             if src_domain and src_domain != page_domain:
                 signals["external_script_loaded"] = True
+    
 
     return signals
+
 
 
 
