@@ -1,28 +1,29 @@
-from protocol_check import http_checker
-from lexical_analyzer import lexical_analysis
-from html_scanner import html_scan
-from tls_checker import tls_check
-from whois_checker import whois_check
-from brand_detector import brand_check
+from static_analysis.protocol_check import http_checker
+from static_analysis.lexical_analyzer import lexical_analysis
+from static_analysis.html_scanner import html_scan
+from static_analysis.tls_checker import tls_check
+from static_analysis.whois_checker import whois_check
+from static_analysis.brand_detector import brand_check
 
+from static_analysis.url_normalizer import normalize_url
 
 def run_static_analysis(url):
-    """
-    Runs all static analysis modules on a single URL
-    and returns combined results.
-    """
+    normalized = normalize_url(url)
+    final_url = normalized["normalized_url"]
 
     results = {
-        "url": url,
-        "protocol_check": http_checker(url),
-        "lexical_analysis": lexical_analysis(url),
-        "html_analysis": html_scan(url),
-        "tls_analysis": tls_check(url),
-        "whois_analysis": whois_check(url),
-        "brand_analysis": brand_check(url)
+        "url": final_url,
+        "protocol_check": http_checker(final_url),
+        "lexical_analysis": lexical_analysis(final_url),
+        "html_analysis": html_scan(final_url),
+        "tls_analysis": tls_check(final_url),
+        "whois_analysis": whois_check(final_url),
+        "brand_analysis": brand_check(final_url),
+        "url_metadata": normalized
     }
 
     return results
+
 
 
 # ---- local testing only ----
