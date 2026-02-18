@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURL | Advanced URL Threat Intelligence Engine</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+<style>
+
+:root{
+    --accent:#25e7a2;
+    --accent-hover:#1ecb8e;
+}
+
+/* ================= GLOBAL ================= */
+
+body{
+    margin:0;
+    font-family:'Segoe UI',sans-serif;
+    background:#000;
+    color:#fff;
+    scroll-behavior:smooth;
+}
+
+/* FIXED BACKGROUND */
+.site-shell{
+    min-height:100vh;
+    background:
+    linear-gradient(rgba(0,0,0,.85), rgba(0,0,0,.95)),
+    url("assets/img/ChatGPT\ Image\ Feb\ 18\,\ 2026\,\ 08_41_07\ PM.png");
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+}
+
+/* ================= ANIMATIONS ================= */
+.hero-title{
+    font-size:5rem;
+    font-weight:700;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    color:#ffffff;
+    position:relative;
+    animation: fadeInTitle 1.2s ease forwards;
+    text-shadow: 0 0 10px rgba(37,231,162,0.3);
+}
+/* subtle glow pulse */
+.hero-title.glow {
+    animation: glowPulse 2.5s infinite alternate;
+}
+@keyframes glowPulse {
+    from {
+        text-shadow: 0 0 8px rgba(37,231,162,0.3);
+    }
+    to {
+        text-shadow: 0 0 20px rgba(37,231,162,0.8);
+    }
+}
+
+
+/* ================= NAV ================= */
+
+.navbar{
+    background:transparent !important;
+    transition:all .3s ease;
+}
+
+.navbar .nav-link{
+    color:#fff !important;
+    font-weight:500;
+}
+
+.navbar .nav-link:hover,
+.nav-link.active{
+    color:var(--accent) !important;
+}
+
+.navbar-brand{
+    color:#fff !important;
+    font-weight:700;
+    letter-spacing:1px;
+}
+
+/* ================= HERO ================= */
+
+.hero{
+    height:100vh;
+    display:flex;
+    align-items:center;
+    text-align:center;
+    padding-top:80px;
+}
+
+.hero-title{
+    font-size:5rem;
+    font-weight:700;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+}
+
+.hero-subtitle{
+    font-size:1.3rem;
+    color:#bbb;
+    margin-bottom:2rem;
+}
+
+.scan-panel{
+    max-width:700px;
+    margin:0 auto;
+}
+
+/* ================= INPUT ================= */
+
+.form-control{
+    background:rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.2);
+    color:#fff;
+    height:55px;
+}
+
+.form-control:focus{
+    border-color:var(--accent);
+    box-shadow:0 0 12px rgba(37,231,162,.5);
+    background:rgba(0,0,0,.8);
+    color:#fff;
+}
+
+/* Upload square */
+.btn-upload{
+    width:55px;
+    height:55px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.2);
+    color:#fff;
+    transition:.3s;
+}
+
+.btn-upload:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+}
+
+/* Scan button */
+.btn-accent{
+    background:var(--accent);
+    border:none;
+    height:55px;
+    padding:0 30px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.btn-accent:hover{
+    background:var(--accent-hover);
+    box-shadow:0 0 15px rgba(37,231,162,.6);
+}
+
+/* ================= SERVICES ================= */
+
+.services{
+    padding:120px 0;
+    background:#0c0c0c;
+}
+.service-card{
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding:40px;
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    transition:.4s;
+    min-height:420px;
+}
+
+.service-card:hover{
+    transform:translateY(-8px);
+    border-color:var(--accent);
+    box-shadow:0 10px 40px rgba(0,0,0,0.6);
+}
+
+.service-icon{
+    font-size:2rem;
+    margin-bottom:20px;
+    color:var(--accent);
+}
+
+/* ================= DEVELOPERS ================= */
+
+.developers{
+    padding:120px 0;
+    background:#111;
+}
+
+.section-title{
+    text-align:center;
+    margin-bottom:70px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+}
+
+.dev-card{
+    background:#181818;
+    padding:40px;
+    text-align:center;
+    border:1px solid rgba(255,255,255,.05);
+    transition:.4s;
+}
+
+.dev-card:hover{
+    transform:translateY(-8px);
+    border-color:var(--accent);
+}
+
+.dev-avatar{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    object-fit:cover;
+    margin-bottom:20px;
+}
+.service-card{
+    background:#181818;
+    padding:40px;
+    border:1px solid rgba(255,255,255,.05);
+    transition:.4s;
+    min-height:420px;
+}
+
+.service-card ul{
+    list-style:none;
+    padding-left:0;
+}
+
+.service-card ul li{
+    margin-bottom:10px;
+    font-size:.95rem;
+    color:#bbb;
+    position:relative;
+    padding-left:18px;
+}
+
+.service-card ul li::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:7px;
+    width:6px;
+    height:6px;
+    background:var(--accent);
+    border-radius:50%;
+}
+.scan-loader{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.95);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+    opacity:0;
+    visibility:hidden;
+    transition:0.3s ease;
+}
+
+.scan-loader.active{
+    opacity:1;
+    visibility:visible;
+}
+
+.loader-content{
+    text-align:center;
+    color:white;
+}
+.terminal{
+    max-width:800px;
+    margin:40px auto 0;
+    background:#0b0b0b;
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.05);
+    box-shadow:0 15px 50px rgba(0,0,0,0.7);
+    display:none;
+}
+
+.terminal-header{
+    background:#141414;
+    padding:10px 15px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.85rem;
+    color:#aaa;
+}
+
+.dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+}
+
+.red{ background:#ff5f56; }
+.yellow{ background:#ffbd2e; }
+.green{ background:#27c93f; }
+
+.terminal-title{
+    margin-left:10px;
+    font-family:monospace;
+}
+
+.terminal-body{
+    padding:20px;
+    font-family:monospace;
+    font-size:0.9rem;
+    color:#00ff9c;
+    min-height:200px;
+    white-space:pre-line;
+}
+
+
+
+
+/* ================= FOOTER ================= */
+
+footer{
+    background:#000;
+    padding:30px 0;
+    text-align:center;
+    color:#777;
+    font-size:.9rem;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="site-shell">
+
+<nav class="navbar navbar-expand-lg fixed-top">
+<div class="container">
+<a class="navbar-brand" href="#">SURL</a>
+<div class="collapse navbar-collapse justify-content-end">
+<ul class="navbar-nav">
+<li class="nav-item"><a class="nav-link" href="#scan">Scan</a></li>
+<li class="nav-item"><a class="nav-link" href="#services">Services</a></li>
+<li class="nav-item"><a class="nav-link" href="#developers">Team</a></li>
+</ul>
+</div>
+</div>
+</nav>
+
+<section class="hero" id="scan">
+<div class="container">
+<h1 class="hero-title glow">SURL</h1>
+<p class="hero-subtitle">Advanced URL Threat Intelligence Engine</p>
+
+<form class="scan-panel">
+    <div class="terminal mt-5" id="terminalBox">
+    <div class="terminal-header">
+        <span class="dot red"></span>
+        <span class="dot yellow"></span>
+        <span class="dot green"></span>
+        <span class="terminal-title">SURL Threat Console</span>
+    </div>
+    <div class="terminal-body" id="terminalOutput"></div>
+</div>
+
+<div class="row g-2 justify-content-center">
+
+<div class="col-lg-6 col-md-8 col-12">
+<input type="text" id="urlInput" class="form-control" placeholder="example.com" required>
+
+</div>
+
+<div class="col-auto">
+<label class="btn-upload">
+<i class="fa-solid fa-image"></i>
+<input type="file" class="d-none" accept="image/*">
+</label>
+</div>
+
+<div class="col-auto">
+<button class="btn btn-accent">Scan</button>
+</div>
+
+</div>
+</form>
+</div>
+</section>
+
+<section class="services" id="services">
+<div class="container">
+
+<h2 class="section-title" data-aos="fade-right">
+Threat Intelligence Pipeline
+</h2>
+
+<div class="row g-4">
+
+<div class="col-md-4">
+<div class="service-card" data-aos="fade-up">
+<div class="service-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+<h5>1. Static URL Analysis</h5>
+<ul class="text-start mt-3">
+<li>Protocol & TLS Validation</li>
+<li>Lexical Pattern Inspection</li>
+<li>WHOIS & Domain Age Check</li>
+<li>HTML & Script Structure Scan</li>
+<li>Brand Impersonation Detection</li>
+</ul>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="service-card" data-aos="fade-up">
+<div class="service-icon"><i class="fa-solid fa-box"></i></div>
+<h5>2. Sandbox & Dynamic Analysis</h5>
+<ul class="text-start mt-3">
+<li>Headless Browser Execution</li>
+<li>DOM Behavior Monitoring</li>
+<li>Network Request Logging</li>
+<li>Credential Form Detection</li>
+<li>Screenshot Capture</li>
+</ul>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="service-card" data-aos="fade-up">
+<div class="service-icon"><i class="fa-solid fa-brain"></i></div>
+<h5>3. Risk Intelligence Engine</h5>
+<ul class="text-start mt-3">
+<li>Weighted Risk Scoring Model</li>
+<li>PBH Behavioral Fingerprinting</li>
+<li>Trust Signal Correlation</li>
+<li>Explainable Risk Reporting</li>
+<li>Threat Severity Classification</li>
+</ul>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+<section class="services">
+<div class="container text-center">
+<h2 class="section-title">Why SURL?</h2>
+
+<div class="row g-4 mt-4">
+
+<div class="col-md-4">
+<h5>Explainable Intelligence</h5>
+<p>Every risk score is backed by transparent reasoning and security indicators.</p>
+</div>
+
+<div class="col-md-4">
+<h5>Multi-Layer Detection</h5>
+<p>Combines static, behavioral and fingerprinting techniques.</p>
+</div>
+
+<div class="col-md-4">
+<h5>Security-Focused Architecture</h5>
+<p>Designed using sandbox isolation and modular risk evaluation engines.</p>
+</div>
+
+</div>
+</div>
+</section>
+
+
+
+<section class="developers" id="developers">
+<div class="container">
+<h2 class="section-title" data-aos="fade-right">The Developers</h2>
+
+<div class="row g-4">
+<div class="col-md-3">
+<div class="dev-card" data-aos="zoom-in">
+<img class="dev-avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80">
+<h6>JoJo</h6>
+<p>Backend & Security Engineer</p>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="dev-card" data-aos="zoom-in">
+<img class="dev-avatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80">
+<h6>Martin</h6>
+<p>Threat Intelligence Engineer</p>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="dev-card" data-aos="zoom-in">
+<img class="dev-avatar" src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=300&q=80">
+<h6>Sarah</h6>
+<p>Security Analysis Lead</p>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="dev-card" data-aos="zoom-in">
+<img class="dev-avatar" src="https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=300&q=80">
+<h6>Alex</h6>
+<p>DevOps Engineer</p>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<footer>
+© 2026 SURL | URL Threat Intelligence Engine
+</footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+<script>
+AOS.init({duration:1000});
+</script>
+
+<script>
+const sections=document.querySelectorAll("section");
+const navLinks=document.querySelectorAll(".nav-link");
+
+window.addEventListener("scroll",()=>{
+let current="";
+sections.forEach(section=>{
+const sectionTop=section.offsetTop-100;
+if(pageYOffset>=sectionTop){current=section.getAttribute("id");}
+});
+navLinks.forEach(link=>{
+link.classList.remove("active");
+if(link.getAttribute("href")==="#"+current){
+link.classList.add("active");
+}
+});
+});
+</script>
+
+<script>
+window.addEventListener("scroll",()=>{
+const navbar=document.querySelector(".navbar");
+if(window.scrollY>50){
+navbar.style.background="rgba(0,0,0,0.95)";
+navbar.style.backdropFilter="blur(8px)";
+}else{
+navbar.style.background="transparent";
+navbar.style.backdropFilter="none";
+}
+});
+</script>
+<script>
+window.addEventListener("scroll", function(){
+    const offset = window.pageYOffset;
+    document.querySelector(".site-shell").style.backgroundPositionY = offset * 0.3 + "px";
+});
+</script>
+<script>
+const scanForm = document.querySelector("form");
+const terminal = document.getElementById("terminalBox");
+const terminalOutput = document.getElementById("terminalOutput");
+
+const scanSteps = [
+    "[+] Initializing Static Analysis Engine...",
+    "[+] Validating URL Protocol...",
+    "[+] Checking TLS Certificate...",
+    "[+] Performing Lexical Pattern Analysis...",
+    "[+] Running WHOIS & Domain Intelligence...",
+    "[+] Scanning HTML & Script Structures...",
+    "[+] Calculating Risk Score...",
+    "[+] Generating Behavioral Fingerprint...",
+    "[✓] Threat Analysis Completed."
+];
+
+function typeLine(text, delay = 40){
+    return new Promise(resolve => {
+        let i = 0;
+        const interval = setInterval(() => {
+            terminalOutput.textContent += text[i];
+            i++;
+            if(i >= text.length){
+                clearInterval(interval);
+                terminalOutput.textContent += "\n";
+                resolve();
+            }
+        }, delay);
+    });
+}
+
+async function runTerminal(){
+    terminalOutput.textContent = "";
+    terminal.style.display = "block";
+
+    for(const step of scanSteps){
+        await typeLine(step);
+        await new Promise(r => setTimeout(r, 400));
+    }
+}
+
+scanForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    runTerminal();
+});
+</script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+
+    const form = document.querySelector(".scan-panel");
+
+    form.addEventListener("submit", async function(e){
+        e.preventDefault();
+
+        const urlInput = document.getElementById("urlInput");
+
+        if(!urlInput){
+            alert("URL input not found.");
+            return;
+        }
+
+        const url = urlInput.value.trim();
+
+        try{
+            const response = await fetch("/scan", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ url: url })
+            });
+
+            const data = await response.json();
+
+            if(data.error){
+                alert(data.error);
+                return;
+            }
+
+            localStorage.setItem("scanResult", JSON.stringify(data));
+            window.location.href = "/results";
+
+        }catch(error){
+            console.error(error);
+            alert("Scan failed. Backend error.");
+        }
+    });
+
+});
+
+</script>
+
+
+<div id="scanLoader" class="scan-loader">
+    <div class="loader-content">
+        <div class="spinner-border text-light"></div>
+        <p class="mt-3">Analyzing Threat Intelligence...</p>
+    </div>
+</div>
+
+</body>
+</html>
