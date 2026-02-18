@@ -9,7 +9,8 @@ from static_analysis.url_normalizer import normalize_url
 
 def run_static_analysis(url):
     normalized = normalize_url(url)
-    final_url = normalized["normalized_url"]
+    final_url = normalized
+
 
     results = {
         "url": final_url,
