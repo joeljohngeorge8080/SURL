@@ -4,6 +4,18 @@ from static_analysis.static_runner import run_static_analysis
 from scoring_engine.score_calculator import calculate_risk_score
 from scoring_engine.explanation import generate_explanation
 from scoring_engine.pbh_fingerprint import generate_pbh_fingerprint
+from static_analysis.url_normalizer import normalize_url, validate_domain
+
+def run_full_scan(url: str):
+
+    url = normalize_url(url)
+
+    if not validate_domain(url):
+        return {
+            "error": "Invalid domain format. Please enter a valid domain (example.com)."
+        }
+
+    # continue scan normally...
 
 
 ENGINE_VERSION = "1.0"
