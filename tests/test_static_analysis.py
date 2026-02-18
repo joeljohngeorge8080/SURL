@@ -1,11 +1,17 @@
-from static_analysis.static_runner import run_static_analysis
-from scoring_engine.score_calculator import calculate_risk_score
+from app.services.scan_orchestrator import scan_url
+import json
 
 
-url = input("Enter URL: ")
-static_results = run_static_analysis(url)
+def main():
+    url = input("Enter URL: ")
+    result = scan_url(url)
 
-final_result = calculate_risk_score(static_results)
+    
 
-print("\n=== FINAL RISK REPORT ===")
-print(final_result)
+    print("\n=== FINAL REPORT ===")
+    print(json.dumps(result, indent=4, sort_keys=True))
+
+
+
+if __name__ == "__main__":
+    main()
