@@ -26,6 +26,8 @@ app.include_router(router)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 html_path = os.path.join(BASE_DIR, "templates")
 
+app.mount("/screenshots", StaticFiles(directory="screenshots"), name="screenshots")
+
 app.mount("/", StaticFiles(directory=html_path, html=True), name="static")
 
 # Global Exception Handler

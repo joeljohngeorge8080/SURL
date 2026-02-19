@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File
 from app.api.schemas import ScanRequest, ScanResponse
-from app.services.scan_orchestrator import scan_url
+from app.services.scan_orchestrator import scan_url, run_dynamic_scan
 from static_analysis.image_url_extractor import extract_text_from_image
 from static_analysis.static_runner import run_static_analysis
 from scoring_engine.score_calculator import calculate_risk_score
@@ -13,14 +13,19 @@ router = APIRouter()
 
 
 @router.post("/scan", response_model=ScanResponse)
-def scan_endpoint(request: ScanRequest):
-    result = scan_url(request.url)
+async def scan_endpoint(request: ScanRequest):
+    result = await scan_url(request.url)
     return result
 
 
 @router.post("/scan-selected", response_model=ScanResponse)
-def scan_selected(request: ScanRequest):
-    return scan_url(request.url)
+async def scan_selected(request: ScanRequest):
+    return await scan_url(request.url)
+
+
+@router.post("/scan-dynamic")
+async def scan_dynamic(request: ScanRequest):
+    return await run_dynamic_scan(request.url)
 
 
 @router.post("/scan-image")
@@ -88,6 +93,14 @@ templates = Jinja2Templates(directory="app/templates")
 def results_page(request: Request):
     return templates.TemplateResponse(
         "results.html",
+        {"request": request}
+    )
+
+
+@router.get("/dynamic-results", response_class=HTMLResponse)
+def dynamic_results_page(request: Request):
+    return templates.TemplateResponse(
+        "dynamic_results.html",
         {"request": request}
     )
 
