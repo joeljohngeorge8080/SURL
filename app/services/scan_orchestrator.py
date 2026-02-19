@@ -5,14 +5,13 @@ import uuid
 from app.core.logger import logger
 
 from static_analysis.static_runner import run_static_analysis
-from scoring_engine.score_calculator import calculate_risk_score
+from scoring_engine.score_calculator import calculate_risk_score, generate_confidence_score
 from scoring_engine.explanation import generate_explanation
 from scoring_engine.pbh_fingerprint import generate_pbh_fingerprint
 from static_analysis.url_normalizer import normalize_url, validate_domain
 
 
 ENGINE_VERSION = "1.0"
-
 
 def scan_url(url: str) -> dict:
     """
@@ -49,6 +48,9 @@ def scan_url(url: str) -> dict:
                 "engine_version": ENGINE_VERSION,
                 "risk_score": 0,
                 "severity": "Low",
+                "transport_risk": 0,
+                "phishing_risk": 0,
+                "confidence_score": 0,
                 "pbh_fingerprint": "",
                 "binary_pattern": "",
                 "executive_summary": "Invalid domain format. Please enter a valid domain.",
@@ -83,14 +85,21 @@ def scan_url(url: str) -> dict:
         # Step 6: Final Report
         # -------------------------
         final_report = {
-            "request_id": request_id,
             "url": url,
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "engine_version": ENGINE_VERSION,
+
             "risk_score": score_result.get("risk_score"),
             "severity": score_result.get("severity"),
+
+            "transport_risk": score_result.get("transport_risk"),
+            "phishing_risk": score_result.get("phishing_risk"),
+
+            "confidence_score": generate_confidence_score(static_results),
+
             "pbh_fingerprint": pbh_result.get("fingerprint"),
             "binary_pattern": pbh_result.get("binary_pattern"),
+
             "executive_summary": explanation_result.get("executive_summary"),
             "detailed_analysis": explanation_result.get("detailed_analysis", [])
         }

@@ -10,6 +10,8 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 :root{
     --accent:#25e7a2;
@@ -389,6 +391,32 @@ footer{
 </div>
 </div>
 
+<!-- RISK BREAKDOWN -->
+<div class="card card-custom text-center mt-4">
+<h5 class="mb-4">Risk Breakdown</h5>
+
+<div class="row">
+<div class="col-md-4">
+<h6>Transport Risk</h6>
+<p id="transportRisk" class="fs-4 text-warning">0</p>
+</div>
+<div class="col-md-4">
+<h6>Phishing Risk</h6>
+<p id="phishingRisk" class="fs-4 text-danger">0</p>
+</div>
+<div class="col-md-4">
+<h6>Confidence Score</h6>
+<p id="confidenceScore" class="fs-4 text-info">0%</p>
+</div>
+</div>
+</div>
+
+<!-- THREAT RADAR -->
+<div class="card card-custom text-center mt-4">
+<h5 class="mb-4">Threat Radar Visualization</h5>
+<canvas id="riskRadar" height="100"></canvas>
+</div>
+
 <!-- INPUT URL -->
 <div class="card card-custom mb-5">
 <h5>Analyzed URL</h5>
@@ -483,6 +511,11 @@ if(result){
     // Risk Score
     document.getElementById("riskScore").textContent = result.risk_score || 0;
 
+    // Risk Breakdown
+    document.getElementById("transportRisk").textContent = result.transport_risk || 0;
+    document.getElementById("phishingRisk").textContent = result.phishing_risk || 0;
+    document.getElementById("confidenceScore").textContent = (result.confidence_score || 0) + "%";
+
     // Severity Badge
     const badge = document.getElementById("severityBadge");
     badge.textContent = (result.severity || "Low").toUpperCase();
@@ -491,6 +524,9 @@ if(result){
         badge.className = "badge bg-success fs-5 px-4 py-2";
     }
     else if(result.severity === "Medium"){
+        badge.className = "badge bg-warning fs-5 px-4 py-2";
+    }
+    else if(result.severity === "Medium-High"){
         badge.className = "badge bg-warning fs-5 px-4 py-2";
     }
     else{
@@ -504,6 +540,53 @@ if(result){
     // URL
     document.getElementById("urlValue").textContent =
         result.url || "N/A";
+
+    // Radar Chart
+    const ctx = document.getElementById('riskRadar');
+
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Transport Risk', 'Phishing Risk', 'Overall Risk', 'Confidence'],
+            datasets: [{
+                label: 'Threat Profile',
+                data: [
+                    result.transport_risk || 0,
+                    result.phishing_risk || 0,
+                    result.risk_score || 0,
+                    result.confidence_score || 0
+                ],
+                backgroundColor: 'rgba(37, 231, 162, 0.2)',
+                borderColor: 'rgba(37, 231, 162, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: '#25e7a2'
+            }]
+        },
+        options: {
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        display: false
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    pointLabels: {
+                        color: 'white'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'white'
+                    }
+                }
+            }
+        }
+    });
 
     // Executive Summary
     const summarySection = document.getElementById("executiveSummary");

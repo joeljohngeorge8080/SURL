@@ -181,7 +181,18 @@ def generate_explanation(static_results, score_result):
                 "Analyze the URL structure for encoded characters or suspicious subdomains. "
                 "Use URL analysis tools to decode and examine the URL components."
             )
-
+        elif "Domain unreachable" in item:
+            explanation_block["report_paragraph"] = (
+                "The domain could not be resolved or the host is unreachable. "
+                "This may indicate a misconfigured server, inactive domain, "
+                "or infrastructure used in short-lived phishing campaigns."
+            )
+        #for timeout
+        elif "Connection timed out" in item:
+            explanation_block["report_paragraph"] = (
+                "The server failed to respond within the configured timeout period. "
+                "This behavior is common in malicious or poorly configured infrastructure."
+            )
         else:
             explanation_block["report_paragraph"] = (
                 "The static analysis engine identified a risk indicator associated with phishing or malicious behavior patterns. "

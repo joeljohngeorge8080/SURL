@@ -18,7 +18,7 @@ def scan_endpoint(request: ScanRequest):
     return result
 
 
-@router.post("/scan-selected")
+@router.post("/scan-selected", response_model=ScanResponse)
 def scan_selected(request: ScanRequest):
     return scan_url(request.url)
 

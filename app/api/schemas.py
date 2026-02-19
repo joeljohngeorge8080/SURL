@@ -20,6 +20,9 @@ class ScanResponse(BaseModel):
     url: str
     risk_score: int
     severity: str
+    transport_risk: int
+    phishing_risk: int
+    confidence_score: int
     pbh_fingerprint: str
     executive_summary: str
     detailed_analysis: List[DetailedAnalysis]
