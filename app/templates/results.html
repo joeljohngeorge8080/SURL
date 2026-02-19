@@ -7,33 +7,94 @@
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
 <style>
-
 :root{
     --accent:#25e7a2;
-    --danger:#ff4d4d;
-    --warning:#ffc107;
+    --accent-hover:#1ecb8e;
 }
 
 body{
-    background:#0b0b0b;
+    background:#000;
     color:white;
     font-family:'Segoe UI',sans-serif;
+    margin:0;
+    padding:0;
 }
 
-.navbar{
-    background:rgba(0,0,0,0.9);
-    backdrop-filter:blur(10px);
+.site-shell{
+    min-height:100vh;
+    background:linear-gradient(rgba(0,0,0,.85), rgba(0,0,0,.95)), url("assets/img/ChatGPT\ Image\ Feb\ 18\,\ 2026\,\ 08_41_07\ PM.png");
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
 }
 
 .section{
-    padding:80px 0;
+    padding:120px 0 100px 0;
+    background:#0c0c0c;
+    text-align:justify;
+}
+
+.section h1,
+.section h2,
+.section h3,
+.section h4,
+.section h5,
+.section h6{
+    text-align:center;
+}
+
+.navbar{
+    background:rgba(0, 0, 0, 0.1) !important;
+    backdrop-filter:blur(15px);
+    -webkit-backdrop-filter:blur(15px);
+    border-bottom:1px solid rgba(255, 255, 255, 0.1);
+    transition:all .3s ease;
+    position:fixed;
+    width:100%;
+    top:0;
+    z-index:1000;
+    box-shadow:0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.navbar .nav-link{
+    color:#fff !important;
+    font-weight:500;
+    transition:.3s ease;
+}
+
+.navbar .nav-link:hover,
+.nav-link.active{
+    color:var(--accent) !important;
+    text-shadow:0 0 10px rgba(37, 231, 162, 0.5);
+}
+
+.navbar-brand{
+  color:#fff !important;
+  font-weight:700;
+  letter-spacing:1px;
+  margin-left: 289px;
+}
+
+
+
+.section-title{
+    text-align:center;
+    margin-bottom:70px;
+    letter-spacing:.15em;
+    text-transform:uppercase;
+    font-size:2.5rem;
+    font-weight:700;
+    color:#ffffff;
+    text-shadow:0 0 20px rgba(37,231,162,0.3);
 }
 
 .risk-circle{
-    width:180px;
-    height:180px;
+    width:200px;
+    height:200px;
     border-radius:50%;
     border:8px solid var(--accent);
     display:flex;
@@ -42,170 +103,541 @@ body{
     font-size:3rem;
     font-weight:700;
     margin:auto;
-    box-shadow:0 0 30px rgba(37,231,162,0.4);
-}
-
-.badge-risk{
-    font-size:1rem;
-    padding:10px 20px;
+    box-shadow:0 0 40px rgba(37,231,162,0.5);
 }
 
 .card-custom{
     background:rgba(255,255,255,0.05);
     border:1px solid rgba(255,255,255,0.08);
     backdrop-filter:blur(8px);
-    border-radius:10px;
+    border-radius:12px;
+    padding:30px;
+    margin-bottom:30px;
+    text-align:justify;
+}
+
+.card-custom h5{
+    color:#ffffff;
+    font-weight:700;
+    font-size:1.4rem;
+    margin-bottom:1.5rem;
+    text-shadow:0 0 10px rgba(37,231,162,0.2);
+    text-align:center;
+}
+
+.card-custom p{
+    color:#e8e8e8;
+    font-size:1rem;
+    text-align:justify;
 }
 
 .table{
     color:white;
 }
 
-.json-box{
-    background:#000;
-    padding:20px;
-    font-family:monospace;
-    font-size:0.85rem;
-    border-radius:8px;
-    overflow:auto;
+.table thead{
+    background:rgba(255,255,255,0.05);
 }
 
+.table-hover tbody tr:hover{
+    background:rgba(37,231,162,0.05);
+}
+
+.json-box{
+    background:#000;
+    padding:25px;
+    font-family:monospace;
+    font-size:0.9rem;
+    border-radius:10px;
+    overflow:auto;
+    border:1px solid rgba(255,255,255,0.1);
+    white-space:pre;
+    line-height:1.5;
+}
+
+.btn-accent{
+    background:var(--accent);
+    border:none;
+    font-weight:600;
+    transition:.3s;
+}
+
+.btn-accent:hover{
+    background:var(--accent-hover);
+    box-shadow:0 0 15px rgba(37,231,162,.6);
+}
+
+.btn-outline-light{
+    border:1px solid rgba(255,255,255,0.2);
+    color:#fff;
+    font-weight:500;
+    transition:.3s;
+}
+
+.btn-outline-light:hover{
+    border-color:var(--accent);
+    color:var(--accent);
+    background:rgba(37,231,162,0.1);
+}
+
+.detailed-explanation-item{
+    color:#ffffff;
+    padding:15px;
+    background:rgba(255,255,255,0.02);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    margin-bottom:20px;
+}
+
+.detailed-explanation-item strong{
+    color:var(--accent);
+    font-size:1.1rem;
+    display:block;
+    margin-bottom:8px;
+}
+
+.detailed-explanation-item p{
+    color:#e8e8e8;
+    margin-bottom:8px;
+    font-size:0.95rem;
+}
+
+.detailed-explanation-item small{
+    color:#b8b8b8;
+}
+
+h2{
+    color:#ffffff;
+    font-weight:700;
+    font-size:2.5rem;
+    text-shadow:0 0 20px rgba(37,231,162,0.3);
+    margin-bottom:2rem;
+}
+
+h4{
+    color:#ffffff;
+    font-weight:600;
+    text-align:center;
+}
+
+h5{
+    color:#ffffff;
+    font-weight:700;
+    font-size:1.4rem;
+    margin-bottom:1.5rem;
+    text-shadow:0 0 10px rgba(37,231,162,0.2);
+    text-align:center;
+}
+
+.card-custom p{
+    color:#e8e8e8;
+    font-size:1rem;
+}
+
+.badge{
+    font-weight:600;
+}
+.text-accent{
+    color: var(--accent);
+    font-weight:600;
+}
+
+.analysis-item{
+    background:rgba(37, 231, 162, 0.05);
+    border-left:4px solid var(--accent);
+    padding:20px;
+    border-radius:8px;
+    margin-bottom:25px;
+    transition:.3s ease;
+    text-align:justify;
+}
+
+.analysis-item:hover{
+    background:rgba(37, 231, 162, 0.08);
+    transform:translateX(5px);
+}
+
+.analysis-item h6{
+    color:var(--accent);
+    font-size:1.1rem;
+    font-weight:700;
+    margin-bottom:12px;
+    text-align:center;
+}
+
+.analysis-item p{
+    margin-bottom:8px;
+    line-height:1.6;
+    color:#e8e8e8;
+    text-align:justify;
+}
+
+.analysis-item strong{
+    color:#ffffff;
+    display:block;
+    margin-top:12px;
+    margin-bottom:5px;
+}
+
+.safety-advisory{
+    background:rgba(255, 107, 107, 0.08);
+    border-left:4px solid #ff6b6b;
+    padding:20px;
+    border-radius:8px;
+    margin-top:20px;
+    text-align:justify;
+}
+
+.safety-advisory ul{
+    list-style:none;
+    padding:0;
+    margin:10px 0 0 0;
+}
+
+.safety-advisory li{
+    padding:8px 0;
+    padding-left:25px;
+    position:relative;
+    color:#e8e8e8;
+    text-align:justify;
+}
+
+.safety-advisory li::before{
+    content:"✓";
+    position:absolute;
+    left:0;
+    color:#ff6b6b;
+    font-weight:700;
+}
+
+.score-section{
+    margin-bottom:60px;
+}
+
+.indicators-section{
+    margin-bottom:60px;
+}
+
+.details-section{
+    margin-bottom:60px;
+}
+
+.summary-section{
+    margin-bottom:60px;
+}
+
+.actions-section{
+    margin-bottom:30px;
+}
+
+.safety-advisory-heading{
+    color:#ffffff;
+    font-weight:700;
+    font-size:1.2rem;
+    margin-bottom:15px;
+    text-shadow:0 0 10px rgba(37,231,162,0.3);
+}
+
+footer{
+    background:#000;
+    padding:30px 0;
+    text-align:center;
+    color:#777;
+    font-size:.9rem;
+}
 </style>
 </head>
+
 <body>
 
+<div class="site-shell">
+
 <nav class="navbar navbar-expand-lg">
-<div class="container">
-<a class="navbar-brand text-white" href="index.html">SURL</a>
+<div class="container-fluid d-flex justify-content-between align-items-center">
+<a class="navbar-brand" href="/">SURL</a>
+<div class="d-flex align-items-center gap-3">
+<button class="btn btn-sm btn-link text-white text-decoration-none" onclick="scrollToSection('detailedAnalysisSection')" style="font-weight:500; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'">
+<i class="fa-solid fa-book me-2"></i>Detailed Technical Analysis
+</button>
+<button class="btn btn-sm btn-link text-white text-decoration-none" onclick="scrollToSection('actionsSection')" style="font-weight:500; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'">
+<i class="fa-solid fa-download me-2"></i>Download
+</button>
+<button class="btn btn-sm" id="navFlaskBtn" style="background:transparent; border:none; color:#fff; font-size:1.2rem; cursor:pointer; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'" title="Run Dynamic Analysis">
+<i class="fa-solid fa-flask"></i>
+</button>
+</div>
 </div>
 </nav>
 
 <section class="section text-center">
-
 <div class="container">
 
-<h2 class="mb-5">Threat Intelligence Report</h2>
+<h2 class="section-title">Threat Intelligence Report</h2>
 
-<div class="row align-items-center mb-5">
-
-<div class="col-md-6">
-<div class="risk-circle" id="riskScore">72</div>
+<!-- SCORE -->
+<div class="score-section">
+<div class="row align-items-center justify-content-center">
+<div class="col-md-4 text-center">
+<div class="risk-circle" id="riskScore">0</div>
 <p class="mt-3">Risk Score</p>
 </div>
 
-<div class="col-md-6">
+<div class="col-md-4 text-center">
 <h4>Severity Level</h4>
-<span class="badge bg-danger badge-risk" id="severityBadge">
-HIGH RISK
-</span>
+<span class="badge fs-5 px-4 py-2" id="severityBadge">LOW</span>
+</div>
+</div>
 </div>
 
+<!-- INPUT URL -->
+<div class="card card-custom mb-5">
+<h5>Analyzed URL</h5>
+<p id="urlValue" class="text-break mb-0" style="text-align:center; word-wrap:break-word; color:var(--accent);"></p>
 </div>
 
-<div class="card card-custom p-4 mb-4">
+<!-- PBH -->
+<div class="card card-custom mb-5">
 <h5>Behavioral Fingerprint (PBH)</h5>
-<p id="pbhValue" class="text-break">
-e59bbea6227c578f97fc467bc62dc3407d4885693d74e6e970f6cab44158fef4
-</p>
+<p id="pbhValue" class="text-break mb-0" style="text-align:center;"></p>
 </div>
 
-<div class="card card-custom p-4 mb-4">
-<h5>Detected Indicators</h5>
+<!-- INDICATORS -->
+<div class="card card-custom indicators-section">
+<h5 class="mb-4">Detected Indicators</h5>
 
-<table class="table table-dark table-hover">
+<div class="table-responsive">
+<table class="table table-dark table-hover align-middle">
 <thead>
 <tr>
+<th>#</th>
 <th>Indicator</th>
 <th>Impact</th>
 <th>Recommendation</th>
 </tr>
 </thead>
-<tbody>
-<tr>
-<td>No HTTPS</td>
-<td>Traffic interception risk</td>
-<td>Enable TLS with valid certificate</td>
-</tr>
-<tr>
-<td>New Domain</td>
-<td>Common phishing pattern</td>
-<td>Verify domain registration history</td>
-</tr>
+<tbody id="indicatorTable">
 </tbody>
 </table>
 </div>
-
-<div class="card card-custom p-4 mb-4">
-<h5>Technical Explanation</h5>
-<p>
-The analyzed URL triggered multiple risk indicators including insecure protocol usage and domain registration anomalies. 
-The combined signals elevated the weighted risk score into the high severity range.
-</p>
 </div>
 
-<div class="card card-custom p-4">
-<button class="btn btn-outline-light mb-3" onclick="toggleJson()">
-View Raw JSON Output
+<!-- DETAILED EXPLANATION -->
+<div class="card card-custom p-4 mb-5 details-section" id="detailedAnalysisSection">
+<h5 class="mb-4">Detailed Technical Analysis</h5>
+<div id="detailedExplanationContainer"></div>
+<hr class="my-4">
+<h6 class="mt-4 mb-3 safety-advisory-heading">User Safety Advisory</h6>
+<div id="userSafetySection" class="safety-advisory"></div>
+</div>
+
+<div class="card card-custom mb-5 summary-section">
+<h5>Executive Summary</h5>
+<p id="executiveSummary" style="line-height:1.8; color:#e8e8e8;"></p>
+</div>
+
+
+<!-- ACTIONS -->
+<div class="card card-custom text-center actions-section" id="actionsSection">
+
+<div class="d-flex justify-content-center gap-3 flex-wrap">
+
+<button class="btn btn-accent" onclick="downloadReport()">
+<i class="fa-solid fa-download me-2"></i>
+Download Static Report
 </button>
 
-<div class="json-box d-none" id="jsonOutput">
-{
-    "risk_score": 72,
-    "severity": "High",
-    "uses_https": false,
-    "new_domain": true
-}
+<button class="btn btn-outline-light" id="dynamicAnalysisBtn">
+<i class="fa-solid fa-flask me-2"></i>
+Run Dynamic Analysis
+</button>
+
+<button class="btn btn-outline-light" onclick="toggleJson()">
+<i class="fa-solid fa-code me-2"></i>
+View Raw JSON
+</button>
+
 </div>
+
+<pre id="jsonContainer" class="json-box mt-4 d-none">
+<code id="jsonOutput"></code>
+</pre>
+
 </div>
 
 </div>
 </section>
 
+<footer>
+<div class="container">
+<p>&copy; 2026 SURL - Advanced URL Threat Intelligence Engine</p>
+</div>
+</footer>
+
+</div>
 <script>
-function toggleJson(){
-    document.getElementById("jsonOutput").classList.toggle("d-none");
-}
-</script>
-<script>
+
 const result = JSON.parse(localStorage.getItem("scanResult"));
 
 if(result){
 
-    document.getElementById("riskScore").textContent = result.risk_score;
+    // Risk Score
+    document.getElementById("riskScore").textContent = result.risk_score || 0;
 
+    // Severity Badge
     const badge = document.getElementById("severityBadge");
-    badge.textContent = result.severity.toUpperCase();
+    badge.textContent = (result.severity || "Low").toUpperCase();
 
     if(result.severity === "Low"){
-        badge.className = "badge bg-success badge-risk";
+        badge.className = "badge bg-success fs-5 px-4 py-2";
     }
     else if(result.severity === "Medium"){
-        badge.className = "badge bg-warning badge-risk";
+        badge.className = "badge bg-warning fs-5 px-4 py-2";
     }
     else{
-        badge.className = "badge bg-danger badge-risk";
+        badge.className = "badge bg-danger fs-5 px-4 py-2";
     }
 
-    document.getElementById("pbhValue").textContent = result.pbh_fingerprint;
+    // PBH
+    document.getElementById("pbhValue").textContent =
+        result.pbh_fingerprint || "N/A";
 
-    // Render indicators dynamically
-    const tableBody = document.querySelector("tbody");
-    tableBody.innerHTML = "";
+    // URL
+    document.getElementById("urlValue").textContent =
+        result.url || "N/A";
 
-    result.analysis.forEach(item => {
-        tableBody.innerHTML += `
+    // Executive Summary
+    const summarySection = document.getElementById("executiveSummary");
+    if(summarySection && result.executive_summary){
+        summarySection.textContent = result.executive_summary;
+    }
+
+    // Detailed Indicators Table
+    const table = document.getElementById("indicatorTable");
+    table.innerHTML = "";
+
+    (result.detailed_analysis || []).forEach((item, index) => {
+        table.innerHTML += `
             <tr>
-                <td>${item.indicator}</td>
-                <td>${item.impact}</td>
-                <td>${item.recommendation}</td>
+                <td>${index + 1}</td>
+                <td>${item.indicator || "-"}</td>
+                <td>${item.severity || "-"}</td>
+                <td>${item.remediation_strategy || "-"}</td>
             </tr>
         `;
     });
 
-    document.getElementById("jsonOutput").textContent =
-        JSON.stringify(result, null, 4);
+    // Pretty JSON
+    const jsonElement = document.getElementById("jsonOutput");
+    if(jsonElement){
+        jsonElement.textContent = JSON.stringify(result, null, 4);
+        hljs.highlightAll();
+    }
+
+    // Detailed Technical Analysis
+    const detailedContainer = document.getElementById("detailedExplanationContainer");
+    if(detailedContainer){
+        detailedContainer.innerHTML = "";
+        (result.detailed_analysis || []).forEach((item, index) => {
+            detailedContainer.innerHTML += `
+                <div class="analysis-item">
+                    <h6>${index + 1}. ${item.indicator}</h6>
+                    <strong>Technical Explanation:</strong>
+                    <p>${item.report_paragraph}</p>
+                    <strong>Remediation Strategy:</strong>
+                    <p>${item.remediation_strategy}</p>
+                    <strong>Verification Strategy:</strong>
+                    <p>${item.verification_strategy}</p>
+                </div>
+            `;
+        });
+    }
+
+    // User Safety Guidance
+    const safetyContainer = document.getElementById("userSafetySection");
+    if(safetyContainer){
+        safetyContainer.innerHTML = "";
+        if(result.severity === "High"){
+            safetyContainer.innerHTML = `
+                <p>
+                This website demonstrates multiple high-risk security indicators. 
+                It is strongly advised not to enter any personal credentials, financial 
+                information, or confidential data on this domain.
+                </p>
+                <ul>
+                    <li>Avoid downloading files from this website.</li>
+                    <li>Do not click embedded links within suspicious emails referencing this domain.</li>
+                    <li>Report the domain to your organization's security team if accessed in a corporate environment.</li>
+                    <li>Clear browser cache and monitor accounts if interaction already occurred.</li>
+                </ul>
+            `;
+        }
+        else if(result.severity === "Medium"){
+            safetyContainer.innerHTML = `
+                <p>
+                This website shows moderate risk indicators. While it may not be actively malicious, 
+                caution is advised before interacting with sensitive inputs.
+                </p>
+                <ul>
+                    <li>Verify domain legitimacy through trusted sources.</li>
+                    <li>Check certificate validity manually.</li>
+                    <li>Avoid sharing confidential credentials unless ownership is confirmed.</li>
+                </ul>
+            `;
+        }
+    }
 }
+
+/* Toggle JSON */
+function toggleJson(){
+    const jsonBox = document.querySelector(".json-box");
+    jsonBox.classList.toggle("d-none");
+}
+
+/* Download */
+function downloadReport(){
+    const dataStr = JSON.stringify(result, null, 4);
+    const blob = new Blob([dataStr], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "SURL_Static_Report.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+/* Scroll to Section */
+function scrollToSection(sectionId){
+    const element = document.getElementById(sectionId);
+    if(element){
+        const navbarHeight = document.querySelector('.navbar').offsetHeight;
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        const offsetPosition = elementPosition - navbarHeight - 30; // 30px extra padding above the heading
+        
+        window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+        });
+    }
+}
+
+/* Flask Button Functionality */
+document.addEventListener('DOMContentLoaded', function(){
+    const navFlaskBtn = document.getElementById('navFlaskBtn');
+    const dynamicAnalysisBtn = document.getElementById('dynamicAnalysisBtn');
+    
+    if(navFlaskBtn && dynamicAnalysisBtn){
+        navFlaskBtn.addEventListener('click', function(){
+            dynamicAnalysisBtn.click();
+        });
+    }
+});
+
 </script>
+</body>
+</html>
+
 
 </body>
 </html>

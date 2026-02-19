@@ -61,6 +61,21 @@ body{
         text-shadow: 0 0 20px rgba(37,231,162,0.8);
     }
 }
+.terminal-box{
+    background: rgba(0,0,0,0.85);
+    border:1px solid rgba(37,231,162,0.3);
+    padding:20px;
+    margin-top:30px;
+    border-radius:8px;
+    font-family:monospace;
+    font-size:0.9rem;
+    color:#cafff1;
+    text-align:left;
+    box-shadow:0 0 20px rgba(37,231,162,0.15);
+    white-space:pre-line;
+    line-height:1.8;
+}
+
 
 
 /* ================= NAV ================= */
@@ -337,7 +352,7 @@ footer{
     padding:30px 0;
     text-align:center;
     color:#777;
-    font-size:.9rem;
+    font-size:.9rem;<div class="terminal mt-5" id="terminalBox">
 }
 
 </style>
@@ -365,37 +380,46 @@ footer{
 <h1 class="hero-title glow">SURL</h1>
 <p class="hero-subtitle">Advanced URL Threat Intelligence Engine</p>
 
-<form class="scan-panel">
-    <div class="terminal mt-5" id="terminalBox">
-    <div class="terminal-header">
+<form class="scan-panel text-center">
+
+    <!-- Terminal -->
+    <div id="terminalHeader" class="terminal-header mx-auto mb-3 d-none" style="max-width:700px;">
         <span class="dot red"></span>
         <span class="dot yellow"></span>
         <span class="dot green"></span>
         <span class="terminal-title">SURL Threat Console</span>
     </div>
-    <div class="terminal-body" id="terminalOutput"></div>
-</div>
 
-<div class="row g-2 justify-content-center">
+    <div id="terminalOutput" class="terminal-box d-none mx-auto mb-4" style="max-width:700px;"></div>
 
-<div class="col-lg-6 col-md-8 col-12">
-<input type="text" id="urlInput" class="form-control" placeholder="example.com" required>
+    <!-- INPUT ROW -->
+    <div class="row g-2 justify-content-center align-items-center">
 
-</div>
+        <div class="col-lg-6 col-md-8 col-12">
+            <input type="text"
+                   id="urlInput"
+                   class="form-control text-center"
+                   placeholder="example.com"
+                   required>
+        </div>
 
-<div class="col-auto">
-<label class="btn-upload">
-<i class="fa-solid fa-image"></i>
-<input type="file" class="d-none" accept="image/*">
-</label>
-</div>
+        <div class="col-auto">
+            <label class="btn-upload">
+                <i class="fa-solid fa-image"></i>
+                <input type="file" class="d-none" accept="image/*">
+            </label>
+        </div>
 
-<div class="col-auto">
-<button class="btn btn-accent">Scan</button>
-</div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-accent">
+                Scan
+            </button>
+        </div>
 
-</div>
+    </div>
+
 </form>
+
 </div>
 </section>
 
@@ -572,99 +596,107 @@ window.addEventListener("scroll", function(){
 });
 </script>
 <script>
-const scanForm = document.querySelector("form");
-const terminal = document.getElementById("terminalBox");
-const terminalOutput = document.getElementById("terminalOutput");
 
-const scanSteps = [
-    "[+] Initializing Static Analysis Engine...",
-    "[+] Validating URL Protocol...",
-    "[+] Checking TLS Certificate...",
-    "[+] Performing Lexical Pattern Analysis...",
-    "[+] Running WHOIS & Domain Intelligence...",
-    "[+] Scanning HTML & Script Structures...",
-    "[+] Calculating Risk Score...",
-    "[+] Generating Behavioral Fingerprint...",
-    "[✓] Threat Analysis Completed."
-];
+let isScanning = false;
+let terminalInterval = null;
 
-function typeLine(text, delay = 40){
-    return new Promise(resolve => {
-        let i = 0;
-        const interval = setInterval(() => {
-            terminalOutput.textContent += text[i];
-            i++;
-            if(i >= text.length){
-                clearInterval(interval);
-                terminalOutput.textContent += "\n";
-                resolve();
-            }
-        }, delay);
-    });
-}
+const form = document.querySelector(".scan-panel");
+const scanButton = document.querySelector(".btn-accent");
+const terminalBox = document.getElementById("terminalOutput"); // adjust if different
 
-async function runTerminal(){
-    terminalOutput.textContent = "";
-    terminal.style.display = "block";
-
-    for(const step of scanSteps){
-        await typeLine(step);
-        await new Promise(r => setTimeout(r, 400));
-    }
-}
-
-scanForm.addEventListener("submit", function(e){
+form.addEventListener("submit", async function(e){
     e.preventDefault();
-    runTerminal();
-});
-</script>
 
+    if (isScanning) return;  // prevent double click
 
-<script>
-    document.addEventListener("DOMContentLoaded", function(){
+    isScanning = true;
+    scanButton.disabled = true;
+    scanButton.innerText = "Scanning...";
 
-    const form = document.querySelector(".scan-panel");
+    startTerminalAnimation();
 
-    form.addEventListener("submit", async function(e){
-        e.preventDefault();
+    try {
+        const urlInput = document.querySelector("input[type='text'], input[type='url']").value;
 
-        const urlInput = document.getElementById("urlInput");
+        const response = await fetch("/scan", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ url: urlInput })
+        });
 
-        if(!urlInput){
-            alert("URL input not found.");
+        const data = await response.json();
+
+        if(data.error){
+            alert(data.error);
+            stopScanning();
             return;
         }
 
-        const url = urlInput.value.trim();
+        localStorage.setItem("scanResult", JSON.stringify(data));
 
-        try{
-            const response = await fetch("/scan", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ url: url })
-            });
+        stopScanning();
 
-            const data = await response.json();
+        window.location.href = "/results";
 
-            if(data.error){
-                alert(data.error);
-                return;
-            }
-
-            localStorage.setItem("scanResult", JSON.stringify(data));
-            window.location.href = "/results";
-
-        }catch(error){
-            console.error(error);
-            alert("Scan failed. Backend error.");
-        }
-    });
-
+    } catch(error){
+        console.error(error);
+        stopScanning();
+        alert("Backend failed");
+    }
 });
 
+function startTerminalAnimation(){
+
+    const lines = [
+        "[+] Initializing Static Analysis Engine",
+        "[+] Validating URL Structure",
+        "[+] Checking TLS Certificate Status",
+        "[+] Performing Lexical Pattern Inspection",
+        "[+] Running WHOIS Intelligence Correlation",
+        "[+] Analyzing HTML & Script Behavior",
+        "[+] Computing Risk Score Model",
+        "[+] Generating PBH Fingerprint",
+        "[✓] Threat Analysis Completed"
+    ];
+
+    let index = 0;
+
+    const terminalHeader = document.getElementById("terminalHeader");
+    terminalHeader.classList.remove("d-none");
+    terminalBox.classList.remove("d-none");
+    terminalBox.innerHTML = "";
+
+    terminalInterval = setInterval(() => {
+
+        if(index < lines.length){
+            terminalBox.innerHTML += lines[index] + "\n";
+            terminalBox.scrollTop = terminalBox.scrollHeight;
+            index++;
+        } else {
+            clearInterval(terminalInterval);
+        }
+
+    }, 350);
+}
+
+
+
+
+function stopScanning(){
+    isScanning = false;
+    scanButton.disabled = false;
+    scanButton.innerText = "Scan";
+
+    if(terminalInterval){
+        clearInterval(terminalInterval);
+    }
+}
+
+
 </script>
+
+
+
 
 
 <div id="scanLoader" class="scan-loader">
