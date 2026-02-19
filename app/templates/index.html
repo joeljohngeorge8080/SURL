@@ -703,23 +703,40 @@ imageInput.addEventListener("change", async function() {
     const file = imageInput.files[0];
     if (!file) return;
 
+    if (isScanning) return;
+
+    isScanning = true;
+    scanButton.disabled = true;
+    scanButton.innerText = "Scanning...";
+
+    startTerminalAnimation();
+
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("/scan-image", {
-        method: "POST",
-        body: formData
-    });
+    try {
+        const response = await fetch("/scan-image", {
+            method: "POST",
+            body: formData
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if(data.error){
-        alert(data.error);
-        return;
+        stopScanning();
+
+        if(data.error){
+            alert(data.error);
+            return;
+        }
+
+        // Render URL cards with preview results
+        renderUrlCards(data);
+
+    } catch(error) {
+        console.error(error);
+        stopScanning();
+        alert("Image processing failed");
     }
-
-    // Render URL cards with preview results
-    renderUrlCards(data);
 });
 
 // Render URL Cards
@@ -735,19 +752,25 @@ function renderUrlCards(data){
             item.preview_severity === "Medium" ? "warning" : "success";
 
         container.innerHTML += `
-        <div class="col-md-4 mb-3">
-            <div class="card bg-dark border-${severityColor}">
-                <div class="card-body">
-                    <h6 class="text-${severityColor}">
-                        ${item.preview_severity} Risk (${item.preview_score})
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+            <div class="card bg-dark border-${severityColor}" style="height: 100%;">
+                <div class="card-body d-flex flex-column p-2">
+                    <h6 class="text-${severityColor} mb-1" style="font-size: 0.8rem;">
+                        ${item.preview_severity} (${item.preview_score})
                     </h6>
-                    <p class="small text-break">${item.url}</p>
-                    <ul class="small">
-                        ${item.preview_flags.map(f => `<li>${f}</li>`).join("")}
-                    </ul>
-                    <button class="btn btn-outline-light btn-sm"
+                    <div class="mb-1">
+                        <small class="text-muted" style="font-size: 0.65rem;">URL:</small>
+                        <p class="small text-break mb-0" style="color: var(--accent); font-size: 0.68rem; line-height: 1.2;">${item.url}</p>
+                    </div>
+                    <div class="mb-1 flex-grow-1">
+                        <small class="text-muted" style="font-size: 0.65rem;">Flags:</small>
+                        <ul class="mb-0" style="font-size: 0.65rem; padding-left: 1rem; line-height: 1.3;">
+                            ${item.preview_flags.map(f => `<li style="margin-bottom: 1px;">${f}</li>`).join("")}
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-outline-light btn-sm w-100 mt-auto" style="font-size: 0.7rem; padding: 0.25rem 0.4rem;"
                         onclick="scanSelected('${item.url}')">
-                        Run Full Scan
+                        <i class="fa-solid fa-magnifying-glass me-1"></i>Scan
                     </button>
                 </div>
             </div>
