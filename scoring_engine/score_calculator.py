@@ -1,12 +1,20 @@
 def calculate_risk_score(static_results):
     """
-    Calculates transport and phishing risk scores separately.
-    Returns final normalized risk score (0-100).
+    Strictly separates Transport Risk from Phishing Risk.
+    
+    Transport Risk: TLS, HTTPS, connection, fetch failures
+    Phishing Risk: Lexical patterns, forms, domain age, brand impersonation
+    
+    Returns final normalized risk score (0-100) with confidence.
     """
 
     transport_score = 0
     phishing_score = 0
     reasons = []
+    
+    # Track indicators for confidence calculation
+    transport_indicators = 0
+    phishing_indicators = 0
 
     # Extract analysis results
     protocol = static_results.get("protocol_check", {})
@@ -16,82 +24,171 @@ def calculate_risk_score(static_results):
     whois = static_results.get("whois_analysis", {})
     brand = static_results.get("brand_analysis", {})
 
-    # -------------------
-    # TRANSPORT RISK (TLS + Protocol)
-    # -------------------
-
+    # ═══════════════════════════════════════════════════════════
+    # TRANSPORT RISK ONLY
+    # ═══════════════════════════════════════════════════════════
+    
+    # HTTPS Protocol Issues
     if not protocol.get("uses_https", True):
         transport_score += 15
-        reasons.append("The URL does not use HTTPS.")
+        reasons.append("The URL does not use HTTPS")
+        transport_indicators += 1
 
+    # TLS/Certificate Issues
     if not tls.get("https_supported", True):
         transport_score += 30
         reasons.append("HTTPS not supported")
-
+        transport_indicators += 1
     elif not tls.get("certificate_valid", True):
         transport_score += 35
         reasons.append("Invalid or expired TLS certificate")
+        transport_indicators += 1
+
+    if tls.get("tls_supported") is False:
+        transport_score += 20
+        reasons.append("TLS not supported")
+        transport_indicators += 1
 
     if tls.get("self_signed_cert"):
         transport_score += 20
         reasons.append("Self-signed TLS certificate")
+        transport_indicators += 1
 
     if tls.get("domain_mismatch"):
         transport_score += 25
         reasons.append("TLS certificate domain mismatch")
+        transport_indicators += 1
 
-    # -------------------
-    # PHISHING RISK (Lexical + HTML + WHOIS + Brand)
-    # -------------------
+    # Connection Failures (TRANSPORT, NOT PHISHING)
+    if not html.get("html_fetched", True):
+        transport_score += 25
+        reasons.append("Website could not be fetched")
+        transport_indicators += 1
 
-    suspicious_flags = [
-        lexical.get("long_url"),
-        lexical.get("contains_at_symbol"),
-        lexical.get("encoded_url"),
-        lexical.get("ip_based_url"),
-        lexical.get("suspicious_keywords"),
-        lexical.get("multiple_subdomains"),
-    ]
+    # Check for connection-specific errors in reasons
+    if "Connection timed out" in str(static_results):
+        transport_score += 30
+        reasons.append("Connection timed out")
+        transport_indicators += 1
 
-    if any(suspicious_flags):
-        phishing_score += 20
-        reasons.append("Suspicious URL structure detected")
+    if "Domain unreachable or DNS resolution failed" in str(static_results):
+        transport_score += 50
+        reasons.append("Domain unreachable or DNS resolution failed")
+        transport_indicators += 1
 
+    # ═══════════════════════════════════════════════════════════
+    # PHISHING RISK ONLY
+    # ═══════════════════════════════════════════════════════════
+
+    # Lexical Pattern Analysis
+    if lexical.get("long_url"):
+        phishing_score += 10
+        reasons.append("Suspiciously long URL")
+        phishing_indicators += 1
+
+    if lexical.get("contains_at_symbol"):
+        phishing_score += 15
+        reasons.append("URL contains @ symbol")
+        phishing_indicators += 1
+
+    if lexical.get("encoded_url"):
+        phishing_score += 15
+        reasons.append("URL contains encoding")
+        phishing_indicators += 1
+
+    if lexical.get("ip_based_url"):
+        phishing_score += 35
+        reasons.append("IP-based URL detected (High Phishing Risk)")
+        phishing_indicators += 1
+
+    # 🧅 TOR HIDDEN SERVICE DETECTION
+    if ".onion" in static_results.get("url", ""):
+        phishing_score += 40
+        reasons.append("Tor (.onion) hidden service detected")
+        phishing_indicators += 1
+
+    if lexical.get("suspicious_keywords"):
+        phishing_score += 15
+        reasons.append("Suspicious keywords detected")
+        phishing_indicators += 1
+
+    if lexical.get("multiple_subdomains"):
+        phishing_score += 15
+        reasons.append("Multiple subdomains detected")
+        phishing_indicators += 1
+
+    # HTML Behavioral Analysis
     if html.get("has_password_input") and html.get("external_form_action"):
         phishing_score += 40
         reasons.append("Credential harvesting behavior detected")
+        phishing_indicators += 1
 
     if html.get("js_obfuscation_detected"):
         phishing_score += 25
         reasons.append("Obfuscated JavaScript detected")
+        phishing_indicators += 1
 
-    if not html.get("html_fetched", True):
-        phishing_score += 20
-        reasons.append("Website could not be fetched")
-
+    # WHOIS & Domain Intelligence
     if whois.get("new_domain"):
         phishing_score += 20
         reasons.append("Recently registered domain")
+        phishing_indicators += 1
 
     if not whois.get("whois_found", True):
-        phishing_score += 15
+        phishing_score += 10
         reasons.append("WHOIS information unavailable")
+        phishing_indicators += 1
 
+    # Brand Impersonation
     if brand.get("possible_impersonation"):
         phishing_score += 40
         reasons.append("Possible brand impersonation detected")
+        phishing_indicators += 1
 
-    # -------------------
+    # ═══════════════════════════════════════════════════════════
     # NORMALIZE SCORES
-    # -------------------
-    # Keep individual scores for display, but cap them at 100
+    # ═══════════════════════════════════════════════════════════
+    
     transport_score = min(transport_score, 100)
     phishing_score = min(phishing_score, 100)
 
-    # Final score is the combination, normalized to 0-100
-    final_score = min(transport_score + phishing_score, 100)
+    # Final score is the combination, clamped to 0-100
+    final_score = max(0, min(transport_score + phishing_score, 100))
 
-    # Determine severity based on final score
+    # ═══════════════════════════════════════════════════════════
+    # CONFIDENCE SCORE - DATA-DRIVEN MODEL
+    # ═══════════════════════════════════════════════════════════
+    
+    # Count available data sources
+    data_sources = 6
+    available_sources = 0
+
+    # Check each source for actual data availability
+    if tls:
+        available_sources += 1
+
+    if protocol:
+        available_sources += 1
+
+    if lexical:
+        available_sources += 1
+
+    if html.get("html_fetched"):
+        available_sources += 1
+
+    if whois.get("whois_found"):
+        available_sources += 1
+
+    if brand is not None:
+        available_sources += 1
+
+    # Calculate confidence as percentage of available sources
+    confidence_score = int((available_sources / data_sources) * 100)
+
+    # ═══════════════════════════════════════════════════════════
+    # SEVERITY CLASSIFICATION
+    # ═══════════════════════════════════════════════════════════
+    
     if final_score <= 20:
         severity = "Low"
     elif final_score <= 40:
@@ -106,6 +203,7 @@ def calculate_risk_score(static_results):
         "severity": severity,
         "transport_risk": transport_score,
         "phishing_risk": phishing_score,
+        "confidence_score": confidence_score,
         "reasons": reasons,
     }
 
@@ -164,4 +262,5 @@ def generate_confidence_score(static_results):
         confidence = int((modules_successful / modules_checked) * max_confidence)
 
     return min(confidence, 100)
+
 

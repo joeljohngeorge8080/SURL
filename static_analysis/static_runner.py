@@ -4,34 +4,50 @@ from static_analysis.html_scanner import html_scan
 from static_analysis.whois_checker import whois_check
 from static_analysis.brand_detector import brand_check
 from static_analysis.tls_checker import check_tls_certificate
-from urllib.parse import urlparse
 
+from urllib.parse import urlparse
 from static_analysis.url_normalizer import normalize_url
 
-def run_static_analysis(url):
-    normalized = normalize_url(url)
-    final_url = normalized
 
-    # Parse URL for domain extraction
+def run_static_analysis(url: str) -> dict:
+
+    # Normalize URL (assumes it returns string)
+    final_url = normalize_url(url)
+
     parsed = urlparse(final_url)
     domain = parsed.hostname
 
-    # Run TLS check
-    tls_result = check_tls_certificate(domain)
+    # -------------------------
+    # TLS CHECK (SAFE)
+    # -------------------------
+    if domain:
+        tls_result = check_tls_certificate(domain)
+    else:
+        tls_result = {
+            "https_supported": False,
+            "certificate_valid": False,
+            "expiry_date": None,
+            "days_remaining": None,
+            "error": "Invalid hostname"
+        }
 
+    # -------------------------
+    # BUILD RESULTS STRUCTURE
+    # -------------------------
     results = {
         "url": final_url,
         "protocol_check": http_checker(final_url),
         "lexical_analysis": lexical_analysis(final_url),
         "html_analysis": html_scan(final_url),
         "tls_analysis": tls_result,
-        "whois_analysis": whois_check(final_url),
+        "whois_analysis": whois_check(domain) if domain else {},
         "brand_analysis": brand_check(final_url),
-        "url_metadata": normalized
+        "url_metadata": {
+            "hostname": domain
+        }
     }
 
     return results
-
 
 
 # ---- local testing only ----
@@ -44,4 +60,3 @@ if __name__ == "__main__":
         print(f"{module}:")
         print(result)
         print()
-

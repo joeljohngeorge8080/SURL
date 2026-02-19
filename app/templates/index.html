@@ -418,6 +418,13 @@ footer{
 
     </div>
 
+    <!-- ERROR MESSAGE CONTAINER -->
+    <div id="errorContainer" class="alert alert-danger alert-dismissible d-none mt-3" role="alert" style="max-width: 700px; margin-left: auto; margin-right: auto;">
+        <strong>⚠️ Error:</strong>
+        <span id="errorMessage"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
     <!-- URL Results Cards -->
     <div id="urlResults" class="row mt-5"></div>
 
@@ -607,10 +614,62 @@ const form = document.querySelector(".scan-panel");
 const scanButton = document.querySelector(".btn-accent");
 const terminalBox = document.getElementById("terminalOutput"); // adjust if different
 
+// Function to detect if URL is an IP address
+function isIPAddress(url) {
+    try {
+        const urlObj = new URL(url.includes("://") ? url : "http://" + url);
+        const hostname = urlObj.hostname;
+        // Check if hostname matches IP pattern (IPv4)
+        const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+        return ipPattern.test(hostname);
+    } catch (e) {
+        return false;
+    }
+}
+
+// Function to show error message
+function showError(message) {
+    const errorContainer = document.getElementById("errorContainer");
+    const errorMessage = document.getElementById("errorMessage");
+    
+    if (!errorContainer || !errorMessage) {
+        console.error("Error container or message element not found");
+        alert(message); // Fallback
+        return;
+    }
+    
+    errorMessage.textContent = message;
+    errorContainer.classList.remove("d-none");
+    // Auto scroll to error
+    errorContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// Function to hide error message
+function hideError() {
+    const errorContainer = document.getElementById("errorContainer");
+    if (errorContainer) {
+        errorContainer.classList.add("d-none");
+    }
+}
+
 form.addEventListener("submit", async function(e){
     e.preventDefault();
 
     if (isScanning) return;  // prevent double click
+
+    const urlInput = document.querySelector("input[type='text'], input[type='url']").value;
+    console.log("URL Input:", urlInput);
+    console.log("Is IP?", isIPAddress(urlInput));
+
+    // Check if URL is an IP address
+    if (isIPAddress(urlInput)) {
+        console.log("IP detected, showing error");
+        hideError();
+        showError("The public ip is not supported by SURL currently, wait for the update");
+        return;
+    }
+
+    hideError();
 
     isScanning = true;
     scanButton.disabled = true;
@@ -619,8 +678,6 @@ form.addEventListener("submit", async function(e){
     startTerminalAnimation();
 
     try {
-        const urlInput = document.querySelector("input[type='text'], input[type='url']").value;
-
         const response = await fetch("/scan", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
@@ -630,7 +687,7 @@ form.addEventListener("submit", async function(e){
         const data = await response.json();
 
         if(data.error){
-            alert(data.error);
+            showError(data.error);
             stopScanning();
             return;
         }
@@ -644,7 +701,7 @@ form.addEventListener("submit", async function(e){
     } catch(error){
         console.error(error);
         stopScanning();
-        alert("Backend failed");
+        showError("Backend failed");
     }
 });
 
