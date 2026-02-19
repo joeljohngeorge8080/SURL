@@ -9,6 +9,7 @@ router = APIRouter()
 def scan_endpoint(request: ScanRequest):
     result = scan_url(request.url)
     return result
+
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
