@@ -66,6 +66,55 @@ async def run_dynamic_analysis(url: str) -> dict:
             await asyncio.sleep(5)
 
             # ─────────────────────────
+            # SUSPICIOUS CONTENT INTELLIGENCE
+            # ─────────────────────────
+            page_text = await page.inner_text("body")
+
+            SUSPICIOUS_KEYWORDS = [
+                "verify your account",
+                "confirm password",
+                "bank login",
+                "update payment",
+                "urgent action required",
+                "account suspended",
+                "security alert",
+                "bitcoin payment",
+                "gift card"
+            ]
+
+            detected_keywords = []
+
+            for keyword in SUSPICIOUS_KEYWORDS:
+                if keyword.lower() in page_text.lower():
+                    detected_keywords.append(keyword)
+
+            dynamic_results["suspicious_keywords_detected"] = detected_keywords
+
+            if detected_keywords:
+                dynamic_results["dynamic_risk_score"] += 20
+
+            page_html = await page.content()
+
+            SUSPICIOUS_JS = [
+                "eval(",
+                "atob(",
+                "document.write(",
+                "window.location=",
+                "unescape("
+            ]
+
+            detected_js_patterns = []
+
+            for pattern in SUSPICIOUS_JS:
+                if pattern in page_html:
+                    detected_js_patterns.append(pattern)
+
+            dynamic_results["suspicious_js_patterns"] = detected_js_patterns
+
+            if detected_js_patterns:
+                dynamic_results["dynamic_risk_score"] += 15
+
+            # ─────────────────────────
             # REDIRECT ANALYSIS
             # ─────────────────────────
             final_url = page.url
@@ -129,14 +178,41 @@ async def run_dynamic_analysis(url: str) -> dict:
                 dynamic_results["dynamic_risk_score"] += 15
 
             # ─────────────────────────
-            # SCREENSHOT
+            # SCREENSHOTS
             # ─────────────────────────
-            screenshot_name = f"{uuid.uuid4()}.png"
-            screenshot_path = os.path.join(SCREENSHOT_DIR, screenshot_name)
+            dynamic_results["screenshots"] = []
 
-            await page.screenshot(path=screenshot_path, full_page=True)
+            # 1️⃣ Landing page screenshot
+            landing_name = f"{uuid.uuid4()}_landing.png"
+            landing_path = os.path.join(SCREENSHOT_DIR, landing_name)
+            await page.screenshot(path=landing_path, full_page=True)
+            dynamic_results["screenshots"].append({
+                "type": "landing",
+                "path": f"/screenshots/{landing_name}"
+            })
 
-            dynamic_results["screenshot_path"] = f"/screenshots/{screenshot_name}"
+            # 2️⃣ Scroll screenshot
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await asyncio.sleep(1)
+
+            scroll_name = f"{uuid.uuid4()}_scroll.png"
+            scroll_path = os.path.join(SCREENSHOT_DIR, scroll_name)
+            await page.screenshot(path=scroll_path, full_page=True)
+            dynamic_results["screenshots"].append({
+                "type": "scrolled",
+                "path": f"/screenshots/{scroll_name}"
+            })
+
+            # 3️⃣ Form screenshot (if detected)
+            forms = await page.query_selector_all("form")
+            if forms:
+                form_name = f"{uuid.uuid4()}_form.png"
+                form_path = os.path.join(SCREENSHOT_DIR, form_name)
+                await page.screenshot(path=form_path, full_page=True)
+                dynamic_results["screenshots"].append({
+                    "type": "form_detected",
+                    "path": f"/screenshots/{form_name}"
+                })
 
             await browser.close()
 

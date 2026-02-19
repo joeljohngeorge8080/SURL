@@ -476,15 +476,10 @@ footer {
     </div>
 </div>
 
-<!-- SCREENSHOT SECTION -->
-<div class="card-custom">
-    <h5>Sandbox Execution Screenshot</h5>
-    <p style="color: #999; font-size: 0.95rem; margin-bottom: 1.5rem;">
-        Visual capture of URL rendering in isolated sandbox environment
-    </p>
-    <div class="screenshot-container" id="screenshotContainer">
-        <img id="sandboxImage" class="img-fluid rounded shadow screenshot-image" alt="Sandbox Screenshot">
-    </div>
+<!-- SCREENSHOT GALLERY -->
+<div class="card card-custom mt-5">
+    <h5>Sandbox Screenshots</h5>
+    <div id="screenshotGallery" class="row g-3 mt-3"></div>
 </div>
 
 <!-- FINDINGS SECTION -->
@@ -496,6 +491,12 @@ footer {
     <div id="findingsContainer">
         <p style="color: #888; text-align: center;">Analyzing behavior patterns...</p>
     </div>
+</div>
+
+<!-- SUSPICIOUS CONTENT INTELLIGENCE -->
+<div class="card card-custom mt-5">
+    <h5>Suspicious Content Intelligence</h5>
+    <div id="suspiciousContent"></div>
 </div>
 
 <!-- ACTIONS -->
@@ -627,46 +628,25 @@ if (dynamicResult && dynamicResult.dynamic_analysis) {
     });
 
     // ============================================================
-    // 4. SCREENSHOT
+    // 4. SCREENSHOT GALLERY
     // ============================================================
-    const screenshotImage = document.getElementById("sandboxImage");
-    const screenshotContainer = document.getElementById("screenshotContainer");
-    const rawScreenshotPath = data.screenshot_path || dynamicResult.screenshot_path || "";
-    const screenshotPath = rawScreenshotPath
-        ? (rawScreenshotPath.startsWith("http") || rawScreenshotPath.startsWith("/")
-            ? rawScreenshotPath
-            : `/${rawScreenshotPath}`)
-        : "";
+    const gallery = document.getElementById("screenshotGallery");
+    if (gallery) {
+        const shots = data.screenshots || [];
 
-    if (screenshotPath && screenshotImage) {
-        screenshotImage.src = screenshotPath;
-        screenshotImage.style.display = "block";
-        screenshotImage.onerror = () => {
-            screenshotImage.style.display = "none";
-            if (screenshotContainer) {
-                screenshotContainer.insertAdjacentHTML(
-                    "beforeend",
-                    `
-                    <div class="no-screenshot">
-                        <i class="fa-solid fa-image" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                        <p>Screenshot could not be loaded.</p>
+        if (shots.length > 0) {
+            shots.forEach((ss) => {
+                gallery.innerHTML += `
+                    <div class="col-md-4">
+                        <div class="card bg-dark p-2">
+                            <small class="text-muted text-center">${ss.type}</small>
+                            <img src="${ss.path}" class="img-fluid rounded">
+                        </div>
                     </div>
-                    `
-                );
-            }
-        };
-    } else if (screenshotContainer) {
-        screenshotContainer.insertAdjacentHTML(
-            "beforeend",
-            `
-            <div class="no-screenshot">
-                <i class="fa-solid fa-image" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <p>No screenshot captured</p>
-            </div>
-            `
-        );
-        if (screenshotImage) {
-            screenshotImage.style.display = "none";
+                `;
+            });
+        } else {
+            gallery.innerHTML = "<p class='text-muted'>No screenshots captured</p>";
         }
     }
 
@@ -753,6 +733,36 @@ if (dynamicResult && dynamicResult.dynamic_analysis) {
         `;
         findingsContainer.appendChild(findingDiv);
     });
+
+    // ============================================================
+    // 6. SUSPICIOUS CONTENT INTELLIGENCE
+    // ============================================================
+    const suspiciousDiv = document.getElementById("suspiciousContent");
+    if (suspiciousDiv) {
+        let contentHTML = "";
+
+        if (data.suspicious_keywords_detected?.length > 0) {
+            contentHTML += "<h6>Suspicious Phrases:</h6><ul>";
+            data.suspicious_keywords_detected.forEach((k) => {
+                contentHTML += `<li class="text-danger">${k}</li>`;
+            });
+            contentHTML += "</ul>";
+        }
+
+        if (data.suspicious_js_patterns?.length > 0) {
+            contentHTML += "<h6>Suspicious JS Patterns:</h6><ul>";
+            data.suspicious_js_patterns.forEach((p) => {
+                contentHTML += `<li class="text-warning">${p}</li>`;
+            });
+            contentHTML += "</ul>";
+        }
+
+        if (contentHTML === "") {
+            contentHTML = "<p class='text-muted'>No suspicious textual or JavaScript patterns detected.</p>";
+        }
+
+        suspiciousDiv.innerHTML = contentHTML;
+    }
 
 } else {
     // Fallback if data is missing
