@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.routes import router
 import os
+from app.core.exceptions import global_exception_handler
+
+
+
 
 app = FastAPI()
 
@@ -23,3 +27,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 html_path = os.path.join(BASE_DIR, "templates")
 
 app.mount("/", StaticFiles(directory=html_path, html=True), name="static")
+
+# Global Exception Handler
+app.add_exception_handler(Exception, global_exception_handler)
