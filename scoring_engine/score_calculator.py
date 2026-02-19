@@ -23,6 +23,14 @@ def calculate_risk_score(static_results):
         score += 10
         reasons.append("The URL does not use HTTPS.")
 
+    if not tls.get("https_supported"):
+        score += 30
+        reasons.append("HTTPS not supported")
+
+    elif not tls.get("certificate_valid"):
+        score += 25
+        reasons.append("Invalid or expired TLS certificate")
+
     if tls.get("tls_supported") is False:
         score += 20
         reasons.append("The site does not properly support TLS.")
