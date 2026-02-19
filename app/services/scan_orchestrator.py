@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 
 from app.core.logger import logger
 
+from app.dynamic_analysis.sandbox_runner import run_dynamic_analysis
+
 from static_analysis.static_runner import run_static_analysis
 from scoring_engine.score_calculator import calculate_risk_score
 from scoring_engine.explanation import generate_explanation
@@ -78,7 +80,7 @@ def is_private_ip(url: str) -> bool:
 # ==========================================================
 # MAIN SCAN FUNCTION
 # ==========================================================
-def scan_url(url: str) -> dict:
+async def scan_url(url: str) -> dict:
 
     request_id = str(uuid.uuid4())
     start_time = time.time()
@@ -204,3 +206,20 @@ def scan_url(url: str) -> dict:
             f"[{request_id}] Scan failed after {duration}s | Error: {str(e)}"
         )
         raise
+
+
+# ==========================================================
+# DYNAMIC SCAN ONLY
+# ==========================================================
+async def run_dynamic_scan(url: str) -> dict:
+    """
+    Runs dynamic sandbox only.
+    Returns dynamic analysis report.
+    """
+    dynamic_results = await run_dynamic_analysis(url)
+
+    return {
+        "url": url,
+        "dynamic_analysis": dynamic_results,
+        "dynamic_risk_score": dynamic_results.get("dynamic_risk_score")
+    }

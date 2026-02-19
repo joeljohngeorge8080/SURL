@@ -474,7 +474,7 @@ footer{
 Download Static Report
 </button>
 
-<button class="btn btn-outline-light" id="dynamicAnalysisBtn">
+<button class="btn btn-outline-light" id="runDynamicBtn">
 <i class="fa-solid fa-flask me-2"></i>
 Run Dynamic Analysis
 </button>
@@ -668,6 +668,27 @@ if(result){
             `;
         }
     }
+}
+
+const runDynamicBtn = document.getElementById("runDynamicBtn");
+if (runDynamicBtn) {
+    runDynamicBtn.addEventListener("click", async () => {
+
+        const result = JSON.parse(localStorage.getItem("scanResult"));
+        const url = result.url;
+
+        const response = await fetch("/scan-dynamic", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+
+        localStorage.setItem("dynamicResult", JSON.stringify(data));
+
+        window.location.href = "/dynamic-results";
+    });
 }
 
 /* Toggle JSON */
