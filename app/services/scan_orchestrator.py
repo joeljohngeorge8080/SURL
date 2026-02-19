@@ -20,21 +20,19 @@ def run_full_scan(url: str):
 
 ENGINE_VERSION = "1.0"
 
-
 def scan_url(url: str) -> dict:
-    """
-    Main orchestration function for URL scanning.
 
-    Pipeline:
-        1. Static Analysis
-        2. Risk Scoring
-        3. Behavioral Fingerprint (PBH)
-        4. Explanation Generation
-        5. Final Structured Report
+    url = normalize_url(url)
 
-    Returns:
-        dict: Structured security assessment report
-    """
+    if not validate_domain(url):
+        return {
+            "url": url,
+            "risk_score": 0,
+            "severity": "Low",
+            "pbh_fingerprint": "",
+            "executive_summary": "Invalid domain format.",
+            "detailed_analysis": []
+        }
 
     # -------------------------
     # Step 1: Static Analysis
@@ -57,17 +55,20 @@ def scan_url(url: str) -> dict:
     explanation_result = generate_explanation(static_results, score_result)
 
     # -------------------------
-    # Step 5: Build Final Report
+    # Step 5: Build Final Report (MATCH SCHEMA)
     # -------------------------
     final_report = {
-        "url": url,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "engine_version": ENGINE_VERSION,
-        "risk_score": score_result.get("risk_score"),
-        "severity": score_result.get("severity"),
-        "pbh_fingerprint": pbh_result.get("fingerprint"),
-        "binary_pattern": pbh_result.get("binary_pattern"),
-        "analysis": explanation_result.get("analysis")
-    }
+    "url": url,
+    "timestamp": datetime.utcnow().isoformat() + "Z",
+    "engine_version": ENGINE_VERSION,
+    "risk_score": score_result.get("risk_score"),
+    "severity": score_result.get("severity"),
+    "pbh_fingerprint": pbh_result.get("fingerprint"),
+    "binary_pattern": pbh_result.get("binary_pattern"),
+    "executive_summary": explanation_result.get("executive_summary"),
+    "detailed_analysis": explanation_result.get("detailed_analysis", [])
+}
+
+
 
     return final_report
