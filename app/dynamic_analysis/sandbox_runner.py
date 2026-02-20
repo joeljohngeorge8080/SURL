@@ -3,40 +3,40 @@ from playwright.async_api import async_playwright
 from urllib.parse import urlparse
 import uuid
 import os
-from datetime import datetime
-from app.intelligence.redirect_intelligence import analyze_redirect_chain, extract_root_domain
+
+from app.intelligence.redirect_intelligence import analyze_redirect_chain
+from app.intelligence.keyword_intelligence import analyze_keywords
+from app.intelligence.js_intelligence import analyze_javascript
+from app.intelligence.behavior_classifier import classify_behavior
+from app.intelligence.credential_intelligence import analyze_credentials
+from app.dynamic_analysis.network_monitor import analyze_post_requests
 
 
 SCREENSHOT_DIR = "screenshots"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 
-async def run_dynamic_analysis(url: str) -> dict:
-    """
-    Executes deep behavioral inspection inside isolated headless browser.
-    Fully async. Safe execution timeout enforced.
-    """
+async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
-    dynamic_results = {
+    results = {
         "redirect_chain": [],
-        "redirect_count": 0,
-        "cross_domain_redirect": False,
-        "js_password_field_detected": False,
-        "external_form_submission": False,
-        "auto_redirect_script": False,
-        "suspicious_network_calls": 0,
-        "screenshot_path": None,
-        "redirect_intelligence": None,
-        "dynamic_risk_score": 0
+        "redirect_intelligence": {},
+        "keyword_hits": {},
+        "javascript_intelligence": {},
+        "credential_analysis": {},
+        "screenshots": [],
+        "classification": "Unknown",
+        "confidence": "Low",
     }
+    
+    if static_results is None:
+        static_results = {}
 
-    parsed_original = urlparse(url)
-    original_domain = parsed_original.hostname
+    
 
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
-
 
             context = await browser.new_context(
                 java_script_enabled=True,
@@ -45,178 +45,157 @@ async def run_dynamic_analysis(url: str) -> dict:
 
             page = await context.new_page()
 
-            # ─────────────────────────
-            # REDIRECT CHAIN TRACKING
-            # ─────────────────────────
-            redirect_chain = []
+            # -------------------------
+            # NETWORK MONITORING
+            # -------------------------
+            network_requests = []
+            collected_js = []
 
-            def handle_navigation(frame):
-                if frame.url not in redirect_chain:
-                    redirect_chain.append(frame.url)
-
-            page.on("framenavigated", handle_navigation)
-
-            try:
-                await page.goto(url, wait_until="networkidle", timeout=10000)
-            except Exception:
-                # Continue to allow screenshot capture even if navigation fails or times out
-                pass
-
-            # Wait for JS execution and client-side redirects
-            await asyncio.sleep(5)
-
-            # ─────────────────────────
-            # SUSPICIOUS CONTENT INTELLIGENCE
-            # ─────────────────────────
-            page_text = await page.inner_text("body")
-
-            SUSPICIOUS_KEYWORDS = [
-                "verify your account",
-                "confirm password",
-                "bank login",
-                "update payment",
-                "urgent action required",
-                "account suspended",
-                "security alert",
-                "bitcoin payment",
-                "gift card"
-            ]
-
-            detected_keywords = []
-
-            for keyword in SUSPICIOUS_KEYWORDS:
-                if keyword.lower() in page_text.lower():
-                    detected_keywords.append(keyword)
-
-            dynamic_results["suspicious_keywords_detected"] = detected_keywords
-
-            if detected_keywords:
-                dynamic_results["dynamic_risk_score"] += 20
-
-            page_html = await page.content()
-
-            SUSPICIOUS_JS = [
-                "eval(",
-                "atob(",
-                "document.write(",
-                "window.location=",
-                "unescape("
-            ]
-
-            detected_js_patterns = []
-
-            for pattern in SUSPICIOUS_JS:
-                if pattern in page_html:
-                    detected_js_patterns.append(pattern)
-
-            dynamic_results["suspicious_js_patterns"] = detected_js_patterns
-
-            if detected_js_patterns:
-                dynamic_results["dynamic_risk_score"] += 15
-
-            # ─────────────────────────
-            # REDIRECT ANALYSIS
-            # ─────────────────────────
-            final_url = page.url
-            dynamic_results["redirect_chain"] = redirect_chain
-            dynamic_results["redirect_count"] = len(redirect_chain)
-
-
-            # Compare root domains instead of full hostnames
-            original_root = extract_root_domain(url)
-            final_root = extract_root_domain(final_url)
-
-            if original_root != final_root:
-                dynamic_results["cross_domain_redirect"] = True
-
-            # Intelligent redirect analysis
-            redirect_analysis = analyze_redirect_chain(url, redirect_chain)
-            dynamic_results["redirect_intelligence"] = redirect_analysis
-
-            if redirect_analysis["cross_root_detected"]:
-                dynamic_results["dynamic_risk_score"] += 25
-
-            if redirect_analysis["suspicious_redirect_detected"]:
-                dynamic_results["dynamic_risk_score"] += 20
-
-
-            # ─────────────────────────
-            # PASSWORD FIELD DETECTION
-            # ─────────────────────────
-            password_fields = await page.query_selector_all("input[type='password']")
-            if password_fields:
-                dynamic_results["js_password_field_detected"] = True
-                dynamic_results["dynamic_risk_score"] += 25
-
-            # ─────────────────────────
-            # EXTERNAL FORM ACTION
-            # ─────────────────────────
-            forms = await page.query_selector_all("form")
-            original_root = extract_root_domain(url)
-
-            for form in forms:
+            async def handle_request(request):
                 try:
-                    action = await form.get_attribute("action")
+                    headers = request.headers
+                    content_length = headers.get("content-length")
+                    if content_length:
+                        content_length = int(content_length)
+                    else:
+                        content_length = 0
 
-                    if action:
-                        action_root = extract_root_domain(action)
-                        if action_root and action_root != original_root:
-                            dynamic_results["external_form_submission"] = True
-                            dynamic_results["dynamic_risk_score"] += 25
-                            break
-                    # Relative URLs like "/submit" are same-domain, skip
+                    network_requests.append({
+                        "method": request.method,
+                        "url": request.url,
+                        "content_length": content_length
+                    })
                 except Exception:
                     pass
 
-            # ─────────────────────────
-            # AUTO REDIRECT SCRIPT
-            # ─────────────────────────
-            scripts = await page.content()
+            page.on("request", handle_request)
 
-            if "window.location" in scripts or "setTimeout" in scripts:
-                dynamic_results["auto_redirect_script"] = True
-                dynamic_results["dynamic_risk_score"] += 15
+            async def capture_response(response):
+                try:
+                    content_type = response.headers.get("content-type", "")
+                    if "javascript" in content_type:
+                        if len(body) < 500_000:
+                            collected_js.append(body)
 
-            # ─────────────────────────
+                except Exception:
+                    pass
+
+            page.on("response", capture_response)
+
+            response = await page.goto(url, wait_until="networkidle", timeout=15000)
+
+            # -------------------------
+            # REDIRECT EXTRACTION
+            # -------------------------
+            redirect_chain = []
+
+            if response:
+                request = response.request
+                while request.redirected_from:
+                    redirect_chain.insert(0, request.redirected_from.url)
+                    request = request.redirected_from
+
+                redirect_chain.append(response.url)
+
+            results["redirect_chain"] = redirect_chain
+
+            redirect_analysis = analyze_redirect_chain(url, redirect_chain)
+            results["redirect_intelligence"] = redirect_analysis
+
+            # -------------------------
+            # WAIT FOR FULL RENDER
+            # -------------------------
+            await asyncio.sleep(3)
+
+            # -------------------------
+            # PAGE TEXT EXTRACTION
+            # -------------------------
+            page_text = await page.inner_text("body")
+            keyword_hits = analyze_keywords(page_text)
+            results["keyword_hits"] = keyword_hits
+
+            # -------------------------
+            # JS INTELLIGENCE
+            # -------------------------
+            await asyncio.sleep(2)
+
+            combined_js_analysis = {
+                "high_risk": [],
+                "medium_risk": [],
+                "credential_related": [],
+            }
+
+            for js_code in collected_js:
+                result = analyze_javascript(js_code)
+                combined_js_analysis["high_risk"].extend(result["high_risk"])
+                combined_js_analysis["medium_risk"].extend(result["medium_risk"])
+                combined_js_analysis["credential_related"].extend(result["credential_related"])
+
+            for key in combined_js_analysis:
+                combined_js_analysis[key] = list(set(combined_js_analysis[key]))
+
+            if combined_js_analysis["high_risk"]:
+                summary = "High-risk JavaScript patterns detected."
+            elif combined_js_analysis["credential_related"]:
+                summary = "Credential-handling JavaScript behavior detected."
+            elif combined_js_analysis["medium_risk"]:
+                summary = "Moderate dynamic behavior patterns detected."
+            else:
+                summary = "No suspicious script patterns detected."
+
+            combined_js_analysis["summary"] = summary
+
+            results["javascript_intelligence"] = combined_js_analysis
+            
+            # -------------------------
+            # CREDENTIAL INTELLIGENCE
+            # -------------------------
+            credential_analysis = await analyze_credentials(page, url)
+            results["credential_analysis"] = credential_analysis
+
+            # -------------------------
             # SCREENSHOTS
-            # ─────────────────────────
-            dynamic_results["screenshots"] = []
+            # -------------------------
+            landing_shot = f"{uuid.uuid4()}_landing.png"
+            landing_path = os.path.join(SCREENSHOT_DIR, landing_shot)
+            await page.screenshot(path=landing_path, full_page=False)
+            results["screenshots"].append(landing_shot)
 
-            # 1️⃣ Landing page screenshot
-            landing_name = f"{uuid.uuid4()}_landing.png"
-            landing_path = os.path.join(SCREENSHOT_DIR, landing_name)
-            await page.screenshot(path=landing_path, full_page=True)
-            dynamic_results["screenshots"].append({
-                "type": "landing",
-                "path": f"/screenshots/{landing_name}"
-            })
-
-            # 2️⃣ Scroll screenshot
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await asyncio.sleep(1)
 
-            scroll_name = f"{uuid.uuid4()}_scroll.png"
-            scroll_path = os.path.join(SCREENSHOT_DIR, scroll_name)
+            scroll_shot = f"{uuid.uuid4()}_scrolled.png"
+            scroll_path = os.path.join(SCREENSHOT_DIR, scroll_shot)
             await page.screenshot(path=scroll_path, full_page=True)
-            dynamic_results["screenshots"].append({
-                "type": "scrolled",
-                "path": f"/screenshots/{scroll_name}"
-            })
+            results["screenshots"].append(scroll_shot)
 
-            # 3️⃣ Form screenshot (if detected)
-            forms = await page.query_selector_all("form")
-            if forms:
-                form_name = f"{uuid.uuid4()}_form.png"
-                form_path = os.path.join(SCREENSHOT_DIR, form_name)
-                await page.screenshot(path=form_path, full_page=True)
-                dynamic_results["screenshots"].append({
-                    "type": "form_detected",
-                    "path": f"/screenshots/{form_name}"
-                })
+            # -------------------------
+            # NETWORK EXFILTRATION ANALYSIS
+            # -------------------------
+            exfiltration_results = analyze_post_requests(url, network_requests)
+            results["network_exfiltration"] = exfiltration_results
+
+            # -------------------------
+            
+            # -------------------------
+            classification, confidence = classify_behavior(
+                redirect_analysis=redirect_analysis,
+                keyword_hits=keyword_hits,
+                js_analysis=combined_js_analysis,
+                credential_analysis=credential_analysis,
+                network_exfiltration=exfiltration_results,
+            )
+
+            results["classification"] = classification
+            results["confidence"] = confidence
+
 
             await browser.close()
 
-    except Exception:
-        dynamic_results["dynamic_risk_score"] += 10
+    except Exception as e:
+        print("Dynamic Analysis Error:", str(e))
+        results["classification"] = "Execution Error"
+        results["confidence"] = "Low"
 
-    return dynamic_results
+
+    return results
