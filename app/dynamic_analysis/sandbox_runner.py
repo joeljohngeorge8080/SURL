@@ -7,7 +7,7 @@ import os
 from app.intelligence.redirect_intelligence import analyze_redirect_chain
 from app.intelligence.keyword_intelligence import analyze_keywords
 from app.intelligence.js_intelligence import analyze_javascript
-from app.intelligence.behavior_classifier import classify_behavior
+from app.intelligence.correlation_engine import strict_three_layer_correlation
 from app.intelligence.credential_intelligence import analyze_credentials
 from app.dynamic_analysis.network_monitor import analyze_post_requests
 
@@ -73,8 +73,12 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             async def capture_response(response):
                 try:
                     content_type = response.headers.get("content-type", "")
-                    if "javascript" in content_type:
-                        if len(body) < 500_000:
+
+                    if "javascript" in content_type.lower():
+                        body = await response.text()
+
+                        # Prevent memory explosion
+                        if body and len(body) < 500_000:
                             collected_js.append(body)
 
                 except Exception:
@@ -82,20 +86,28 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
             page.on("response", capture_response)
 
-            response = await page.goto(url, wait_until="networkidle", timeout=15000)
+            response = await page.goto(url, wait_until="domcontentloaded"
+, timeout=15000)
+
+            if not response:
+                raise Exception("Page failed to load")
 
             # -------------------------
             # REDIRECT EXTRACTION
             # -------------------------
             redirect_chain = []
 
-            if response:
-                request = response.request
-                while request.redirected_from:
-                    redirect_chain.insert(0, request.redirected_from.url)
-                    request = request.redirected_from
+            try:
+                if response and response.request:
+                    req = response.request
 
-                redirect_chain.append(response.url)
+                    # Walk backward safely
+                    while req:
+                        redirect_chain.insert(0, req.url)
+                        req = req.redirected_from
+
+            except Exception:
+                redirect_chain = []
 
             results["redirect_chain"] = redirect_chain
 
@@ -110,7 +122,11 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             # -------------------------
             # PAGE TEXT EXTRACTION
             # -------------------------
-            page_text = await page.inner_text("body")
+            try:
+                page_text = await page.inner_text("body")
+            except Exception:
+                page_text = ""
+
             keyword_hits = analyze_keywords(page_text)
             results["keyword_hits"] = keyword_hits
 
@@ -176,9 +192,9 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             results["network_exfiltration"] = exfiltration_results
 
             # -------------------------
-            
+            # CORRELATION ENGINE
             # -------------------------
-            classification, confidence = classify_behavior(
+            correlation_result = strict_three_layer_correlation(
                 redirect_analysis=redirect_analysis,
                 keyword_hits=keyword_hits,
                 js_analysis=combined_js_analysis,
@@ -186,14 +202,17 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 network_exfiltration=exfiltration_results,
             )
 
-            results["classification"] = classification
-            results["confidence"] = confidence
+            results["classification"] = correlation_result["classification"]
+            results["confidence"] = correlation_result["confidence"]
+            results["correlation_signals"] = correlation_result["signals"]
 
 
             await browser.close()
 
     except Exception as e:
-        print("Dynamic Analysis Error:", str(e))
+        import traceback
+        print(f"Dynamic Analysis Error: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
         results["classification"] = "Execution Error"
         results["confidence"] = "Low"
 

@@ -4,6 +4,8 @@ from urllib.parse import urlparse
 import tldextract
 import ipaddress
 
+from app.intelligence.trusted_domains import TRUSTED_TELEMETRY_DOMAINS
+
 
 def extract_root(url: str) -> str:
     try:
@@ -23,9 +25,30 @@ def is_ip_address(host: str) -> bool:
         return False
 
 
+def is_trusted_telemetry(domain: str) -> bool:
+    """
+    Check if domain is in trusted telemetry whitelist.
+    Compares root domains safely.
+    """
+    if not domain:
+        return False
+    
+    domain_lower = domain.lower()
+    
+    for trusted in TRUSTED_TELEMETRY_DOMAINS:
+        trusted_lower = trusted.lower()
+        # Exact match or subdomain match
+        if domain_lower == trusted_lower or domain_lower.endswith("." + trusted_lower):
+            return True
+    
+    return False
+
+
 def analyze_post_requests(original_url: str, requests: list) -> dict:
     """
-    Intelligent network exfiltration analysis.
+    Intelligent network exfiltration analysis with trusted domain filtering.
+
+    Detects suspicious POST requests while excluding known telemetry services.
 
     requests: list of dicts:
         {
@@ -55,7 +78,7 @@ def analyze_post_requests(original_url: str, requests: list) -> dict:
         parsed = urlparse(target_url)
         host = parsed.hostname or ""
 
-        # 🚨 Direct IP submission
+        # 🚨 Direct IP submission is always suspicious
         if is_ip_address(host):
             ip_post_detected = True
             external_post_detected = True
@@ -63,11 +86,13 @@ def analyze_post_requests(original_url: str, requests: list) -> dict:
 
         target_root = extract_root(target_url)
 
-        # 🚨 Cross-root submission
+        # Cross-root submission: only flag if not in trusted list
         if target_root != original_root:
-            external_post_detected = True
+            # Check against trusted telemetry domains
+            if not is_trusted_telemetry(target_root):
+                external_post_detected = True
 
-        # 🚨 Suspicious payload size
+        # 🚨 Suspicious payload size (50KB+)
         content_length = req.get("content_length", 0)
         if content_length and content_length > 50000:
             suspicious_post_detected = True

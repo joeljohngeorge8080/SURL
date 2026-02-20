@@ -14,3 +14,9 @@ TRUSTED_REDIRECT_PLATFORMS = {
     "tinyurl.com",
     "goo.gl"
 }
+TRUSTED_TELEMETRY_DOMAINS = [
+    "stripe.com",
+    "google.com",
+    "github.com",
+    "cloudflare.com"
+]
