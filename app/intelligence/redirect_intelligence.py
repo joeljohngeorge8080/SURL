@@ -1,15 +1,13 @@
 # app/intelligence/redirect_intelligence.py
 
-from urllib.parse import urlparse
 import tldextract
+from app.intelligence.trusted_domains import TRUSTED_REDIRECT_PLATFORMS
+
+
+SUSPICIOUS_TLDS = {"tk", "xyz", "top", "gq", "ml", "cf"}
 
 
 def extract_root_domain(url: str) -> str:
-    """
-    Extracts proper root domain using public suffix list.
-    Example:
-        https://mail.google.co.uk → google.co.uk
-    """
     try:
         ext = tldextract.extract(url)
         if ext.suffix:
@@ -19,14 +17,15 @@ def extract_root_domain(url: str) -> str:
         return ""
 
 
-def analyze_redirect_chain(original_url: str, chain: list) -> dict:
-    """
-    Intelligent redirect analysis.
+def extract_tld(url: str) -> str:
+    try:
+        ext = tldextract.extract(url)
+        return ext.suffix
+    except Exception:
+        return ""
 
-    Suspicious conditions:
-        - More than 3 redirects AND multiple root domains
-        - Final root domain differs from original root domain
-    """
+
+def analyze_redirect_chain(original_url: str, chain: list) -> dict:
 
     if not chain:
         return {
@@ -38,12 +37,20 @@ def analyze_redirect_chain(original_url: str, chain: list) -> dict:
         }
 
     original_root = extract_root_domain(original_url)
+    original_tld = extract_tld(original_url)
+
     root_domains = []
+    suspicious_tld_detected = False
 
     for url in chain:
         root = extract_root_domain(url)
+        tld = extract_tld(url)
+
         if root and root not in root_domains:
             root_domains.append(root)
+
+        if tld in SUSPICIOUS_TLDS:
+            suspicious_tld_detected = True
 
     redirect_count = max(len(chain) - 1, 0)
 
@@ -51,9 +58,20 @@ def analyze_redirect_chain(original_url: str, chain: list) -> dict:
 
     cross_root_detected = final_root != original_root
 
-    suspicious_redirect_detected = (
-        redirect_count > 3 and len(root_domains) > 1
-    ) or cross_root_detected
+    suspicious_redirect_detected = False
+
+    # 🔥 Intelligent Suspicion Logic
+    if original_root not in TRUSTED_REDIRECT_PLATFORMS:
+
+        if (
+            redirect_count > 2
+            and cross_root_detected
+            and len(root_domains) > 2
+        ):
+            suspicious_redirect_detected = True
+
+        if suspicious_tld_detected:
+            suspicious_redirect_detected = True
 
     return {
         "redirect_chain": chain,

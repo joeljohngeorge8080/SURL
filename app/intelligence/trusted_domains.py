@@ -8,3 +8,9 @@ TRUSTED_DOMAINS = {
     "github.com",
     "cloudflare.com"
 }
+TRUSTED_REDIRECT_PLATFORMS = {
+    "bit.ly",
+    "t.co",
+    "tinyurl.com",
+    "goo.gl"
+}
