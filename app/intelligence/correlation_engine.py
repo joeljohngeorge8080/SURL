@@ -1,22 +1,21 @@
 # app/intelligence/correlation_engine.py
 
 
-def evaluate_credential_signal(
-    credential_analysis: dict,
-    js_analysis: dict,
-    network_exfiltration: dict,
-) -> bool:
+
+def evaluate_credential_signal(credential_analysis: dict, _js_analysis: dict) -> bool:
+
     """
     Layer 1: Credential Signal
     """
 
     password_field = credential_analysis.get("credential_fields_detected", False)
-    external_post = network_exfiltration.get("external_post_detected", False)
 
-    credential_js = bool(js_analysis.get("credential_related"))
-    credential_js_is_real = credential_js and (password_field or external_post)
+    external_form = credential_analysis.get("external_form_action", False)
+    ip_form = credential_analysis.get("ip_based_form_action", False)
 
-    return password_field or credential_js_is_real
+    # JS-only signals must not trigger credential escalation.
+    return password_field or external_form or ip_form
+
 
 
 def evaluate_exfiltration_signal(

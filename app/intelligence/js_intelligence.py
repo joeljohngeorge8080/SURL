@@ -2,39 +2,12 @@ import re
 from urllib.parse import urlparse
 
 
-def _extract_root_domain(url: str) -> str:
-    try:
-        parsed = urlparse(url)
-        hostname = (parsed.hostname or "").lower().strip(".")
-        if not hostname:
-            return ""
-
-        parts = hostname.split(".")
-        if len(parts) >= 2:
-            return ".".join(parts[-2:])
-        return hostname
-    except Exception:
-        return ""
-
-
-def _is_external_url(target_url: str, original_url: str) -> bool:
-    try:
-        parsed = urlparse(target_url)
-        if not parsed.scheme or not parsed.hostname:
-            return False
-
-        target_root = _extract_root_domain(target_url)
-        original_root = _extract_root_domain(original_url)
-
-        return bool(target_root and original_root and target_root != original_root)
-    except Exception:
-        return False
-
 
 def analyze_javascript(
     js_content: str,
     credential_analysis: dict = None,
-    original_url: str = "",
+    external_post_detected: bool = False,
+
 ) -> dict:
     """
     Improved JavaScript intelligence.
@@ -61,6 +34,17 @@ def analyze_javascript(
             return findings
 
         js = js_content.lower()
+
+        credential_analysis = credential_analysis or {}
+        credential_fields_detected = credential_analysis.get("credential_fields_detected", False)
+        external_form_action = credential_analysis.get("external_form_action", False)
+        ip_based_form_action = credential_analysis.get("ip_based_form_action", False)
+        strong_credential_context = (
+            credential_fields_detected
+            or external_post_detected
+            or external_form_action
+            or ip_based_form_action
+        )
 
         # ==========================
         # STRICT HIGH RISK DETECTION
@@ -102,6 +86,10 @@ def analyze_javascript(
             and re.search(r"queryselector.*password", js)
         ):
             findings["credential_related"].append("password_field_reference")
+
+        if findings["credential_related"] and not strong_credential_context:
+            findings["credential_related"] = []
+            findings["medium_risk"].append("credential_like_script_behavior")
 
         # ==========================
         # MEDIUM RISK

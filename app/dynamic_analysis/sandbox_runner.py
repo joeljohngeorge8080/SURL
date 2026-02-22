@@ -134,9 +134,17 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
 
             # =========================
+            # CREDENTIAL INTELLIGENCE
+            # =========================
+            credential_analysis = await analyze_credentials(page, url)
+            results["credential_analysis"] = credential_analysis
+
+            # =========================
             # JS INTELLIGENCE
             # =========================
             await asyncio.sleep(2)
+
+            preliminary_exfiltration = analyze_post_requests(url, network_requests)
 
             combined_js_analysis = {
                 "high_risk": [],
@@ -148,7 +156,9 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 js_result = analyze_javascript(
                     js_code,
                     credential_analysis=credential_analysis,
-                    original_url=url,
+
+                    external_post_detected=preliminary_exfiltration.get("external_post_detected", False),
+
                 )
 
                 combined_js_analysis["high_risk"].extend(js_result.get("high_risk", []))
@@ -166,11 +176,17 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 combined_js_analysis["medium_risk"] = list(set(combined_js_analysis["medium_risk"]))
 
 
+            if not credential_analysis.get("credential_fields_detected", False):
+                if combined_js_analysis.get("credential_related"):
+                    combined_js_analysis["credential_related"] = []
+                if "credential_like_script_behavior" not in combined_js_analysis["medium_risk"]:
+                    combined_js_analysis["medium_risk"].append("credential_like_script_behavior")
+
             if combined_js_analysis["high_risk"]:
                 summary = "High-risk JavaScript patterns detected."
 
             elif combined_js_analysis["medium_risk"]:
-                summary = "Moderate dynamic behavior patterns detected."
+                summary = "Moderate dynamic behavior observed."
             else:
                 summary = "No suspicious script patterns detected."
 
@@ -180,20 +196,9 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
 
             # =========================
-            # SCREENSHOTS (BEFORE INTERACTION)
-            # =========================
-            pre_interaction_shot = f"{uuid.uuid4()}_pre_interaction.png"
-            try:
-                await page.screenshot(
-                    path=os.path.join(SCREENSHOT_DIR, pre_interaction_shot),
-                    full_page=False
-                )
-                results["screenshots"].append(pre_interaction_shot)
-            except Exception:
-                pass
 
-            # =========================
-            # HUMAN-LIKE INTERACTION
+            # SCREENSHOTS
+
             # =========================
             try:
                 interaction_results = await simulate_interaction(page)
