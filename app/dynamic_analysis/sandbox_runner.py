@@ -127,6 +127,12 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
             keyword_hits = analyze_keywords(page_text)
             results["keyword_hits"] = keyword_hits
+            # =========================
+            # CREDENTIAL INTELLIGENCE
+            # =========================
+            credential_analysis = await analyze_credentials(page, url)
+            results["credential_analysis"] = credential_analysis
+
 
             # =========================
             # JS INTELLIGENCE
@@ -140,7 +146,11 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             }
 
             for js_code in collected_js:
-                js_result = analyze_javascript(js_code)
+                js_result = analyze_javascript(
+                    js_code,
+                    credential_analysis=credential_analysis,
+                    original_url=url,
+                )
 
                 combined_js_analysis["high_risk"].extend(js_result.get("high_risk", []))
                 combined_js_analysis["medium_risk"].extend(js_result.get("medium_risk", []))
@@ -148,11 +158,18 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
             for key in combined_js_analysis:
                 combined_js_analysis[key] = list(set(combined_js_analysis[key]))
+            
+            if (
+                combined_js_analysis["credential_related"]
+                and not credential_analysis.get("credential_fields_detected", False)
+            ):
+                combined_js_analysis["medium_risk"].append("credential_behavior_without_password_fields")
+                combined_js_analysis["medium_risk"] = list(set(combined_js_analysis["medium_risk"]))
+
 
             if combined_js_analysis["high_risk"]:
                 summary = "High-risk JavaScript patterns detected."
-            elif combined_js_analysis["credential_related"]:
-                summary = "Credential-handling JavaScript behavior detected."
+
             elif combined_js_analysis["medium_risk"]:
                 summary = "Moderate dynamic behavior patterns detected."
             else:
@@ -161,11 +178,7 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             combined_js_analysis["summary"] = summary
             results["javascript_intelligence"] = combined_js_analysis
 
-            # =========================
-            # CREDENTIAL INTELLIGENCE
-            # =========================
-            credential_analysis = await analyze_credentials(page, url)
-            results["credential_analysis"] = credential_analysis
+
 
             # =========================
             # SCREENSHOTS (BEFORE INTERACTION)

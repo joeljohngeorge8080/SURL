@@ -1,16 +1,22 @@
 # app/intelligence/correlation_engine.py
 
 
-def evaluate_credential_signal(credential_analysis: dict, js_analysis: dict) -> bool:
+def evaluate_credential_signal(
+    credential_analysis: dict,
+    js_analysis: dict,
+    network_exfiltration: dict,
+) -> bool:
     """
     Layer 1: Credential Signal
     """
 
     password_field = credential_analysis.get("credential_fields_detected", False)
+    external_post = network_exfiltration.get("external_post_detected", False)
 
     credential_js = bool(js_analysis.get("credential_related"))
+    credential_js_is_real = credential_js and (password_field or external_post)
 
-    return password_field or credential_js
+    return password_field or credential_js_is_real
 
 
 def evaluate_exfiltration_signal(
@@ -60,7 +66,9 @@ def strict_three_layer_correlation(
     """
 
     credential_signal = evaluate_credential_signal(
-        credential_analysis, js_analysis
+        credential_analysis,
+        js_analysis,
+        network_exfiltration,
     )
 
     exfiltration_signal = evaluate_exfiltration_signal(

@@ -1,117 +1,101 @@
 diff --git a/app/dynamic_analysis/sandbox_runner.py b/app/dynamic_analysis/sandbox_runner.py
-index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..5b423bf57d08e1901cbc01ce920418457a16ded5 100644
+index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..8504f2e502d0c15808c2bf9b6f83949fdd1ce827 100644
 --- a/app/dynamic_analysis/sandbox_runner.py
 +++ b/app/dynamic_analysis/sandbox_runner.py
-@@ -1,37 +1,38 @@
- import asyncio
- from playwright.async_api import async_playwright
- from urllib.parse import urlparse
- import uuid
- import os
+@@ -105,89 +105,101 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
  
- from app.intelligence.redirect_intelligence import analyze_redirect_chain
- from app.intelligence.keyword_intelligence import analyze_keywords
- from app.intelligence.js_intelligence import analyze_javascript
- from app.intelligence.correlation_engine import strict_three_layer_correlation
- from app.intelligence.credential_intelligence import analyze_credentials
- from app.dynamic_analysis.network_monitor import analyze_post_requests
-+from app.dynamic_analysis.interaction_engine import simulate_interaction
+             except Exception:
+                 redirect_chain = []
  
+             results["redirect_chain"] = redirect_chain
  
- SCREENSHOT_DIR = "screenshots"
- os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+             redirect_analysis = analyze_redirect_chain(url, redirect_chain)
+             results["redirect_intelligence"] = redirect_analysis
  
+             # =========================
+             # WAIT FOR FULL RENDER
+             # =========================
+             await asyncio.sleep(3)
  
- async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
+             # =========================
+             # PAGE TEXT EXTRACTION
+             # =========================
+             try:
+                 page_text = await page.inner_text("body")
+             except Exception:
+                 page_text = ""
  
-     results = {
-         "redirect_chain": [],
-         "redirect_intelligence": {},
-         "keyword_hits": {},
-         "javascript_intelligence": {},
-         "credential_analysis": {},
-         "network_exfiltration": {},
-         "screenshots": [],
-         "classification": "Unknown",
-         "confidence": "Low",
-     }
+             keyword_hits = analyze_keywords(page_text)
+             results["keyword_hits"] = keyword_hits
  
-     if static_results is None:
-         static_results = {}
++            # =========================
++            # CREDENTIAL INTELLIGENCE
++            # =========================
++            credential_analysis = await analyze_credentials(page, url)
++            results["credential_analysis"] = credential_analysis
++
+             # =========================
+             # JS INTELLIGENCE
+             # =========================
+             await asyncio.sleep(2)
  
-     browser = None  # 🔥 FIX: define before try
++            preliminary_exfiltration = analyze_post_requests(url, network_requests)
++
+             combined_js_analysis = {
+                 "high_risk": [],
+                 "medium_risk": [],
+                 "credential_related": [],
+             }
  
-@@ -145,58 +146,88 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
+             for js_code in collected_js:
+-                js_result = analyze_javascript(js_code)
++                js_result = analyze_javascript(
++                    js_code,
++                    credential_analysis=credential_analysis,
++                    external_post_detected=preliminary_exfiltration.get("external_post_detected", False),
++                )
+ 
+                 combined_js_analysis["high_risk"].extend(js_result.get("high_risk", []))
                  combined_js_analysis["medium_risk"].extend(js_result.get("medium_risk", []))
                  combined_js_analysis["credential_related"].extend(js_result.get("credential_related", []))
  
              for key in combined_js_analysis:
                  combined_js_analysis[key] = list(set(combined_js_analysis[key]))
  
++            if not credential_analysis.get("credential_fields_detected", False):
++                if combined_js_analysis.get("credential_related"):
++                    combined_js_analysis["credential_related"] = []
++                    if "credential_like_script_behavior" not in combined_js_analysis["medium_risk"]:
++                        combined_js_analysis["medium_risk"].append("credential_like_script_behavior")
++
              if combined_js_analysis["high_risk"]:
                  summary = "High-risk JavaScript patterns detected."
              elif combined_js_analysis["credential_related"]:
                  summary = "Credential-handling JavaScript behavior detected."
              elif combined_js_analysis["medium_risk"]:
-                 summary = "Moderate dynamic behavior patterns detected."
+-                summary = "Moderate dynamic behavior patterns detected."
++                summary = "Moderate dynamic behavior observed."
              else:
                  summary = "No suspicious script patterns detected."
  
              combined_js_analysis["summary"] = summary
              results["javascript_intelligence"] = combined_js_analysis
  
+-            # =========================
+-            # CREDENTIAL INTELLIGENCE
+-            # =========================
+-            credential_analysis = await analyze_credentials(page, url)
+-            results["credential_analysis"] = credential_analysis
+-
              # =========================
-             # CREDENTIAL INTELLIGENCE
+             # SCREENSHOTS
              # =========================
-             credential_analysis = await analyze_credentials(page, url)
-             results["credential_analysis"] = credential_analysis
- 
-             # =========================
--            # SCREENSHOTS
-+            # SCREENSHOTS (BEFORE INTERACTION)
-             # =========================
--            landing_shot = f"{uuid.uuid4()}_landing.png"
--            await page.screenshot(
--                path=os.path.join(SCREENSHOT_DIR, landing_shot),
--                full_page=False
--            )
--            results["screenshots"].append(landing_shot)
-+            pre_interaction_shot = f"{uuid.uuid4()}_pre_interaction.png"
-+            try:
-+                await page.screenshot(
-+                    path=os.path.join(SCREENSHOT_DIR, pre_interaction_shot),
-+                    full_page=False
-+                )
-+                results["screenshots"].append(pre_interaction_shot)
-+            except Exception:
-+                pass
-+
-+            # =========================
-+            # HUMAN-LIKE INTERACTION
-+            # =========================
-+            try:
-+                interaction_results = await simulate_interaction(page)
-+                results["interaction_results"] = interaction_results
-+            except Exception:
-+                results["interaction_results"] = {
-+                    "buttons_clicked": 0,
-+                    "forms_submitted": 0,
-+                    "post_interaction_redirect": False,
-+                    "post_interaction_network_activity": False,
-+                }
-+
-+            # =========================
-+            # SCREENSHOTS (AFTER INTERACTION)
-+            # =========================
-+            post_interaction_shot = f"{uuid.uuid4()}_post_interaction.png"
-+            try:
-+                await page.screenshot(
-+                    path=os.path.join(SCREENSHOT_DIR, post_interaction_shot),
-+                    full_page=False
-+                )
-+                results["screenshots"].append(post_interaction_shot)
-+            except Exception:
-+                pass
+             landing_shot = f"{uuid.uuid4()}_landing.png"
+             await page.screenshot(
+                 path=os.path.join(SCREENSHOT_DIR, landing_shot),
+                 full_page=False
+             )
+             results["screenshots"].append(landing_shot)
  
              await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
              await asyncio.sleep(1)
@@ -128,41 +112,3 @@ index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..5b423bf57d08e1901cbc01ce92041845
              # =========================
              exfiltration_results = analyze_post_requests(url, network_requests)
              results["network_exfiltration"] = exfiltration_results
- 
-             # =========================
-             # CORRELATION ENGINE
-             # =========================
-             correlation_result = strict_three_layer_correlation(
-                 redirect_analysis=redirect_analysis,
-                 keyword_hits=keyword_hits,
-                 js_analysis=combined_js_analysis,
-                 credential_analysis=credential_analysis,
-@@ -210,26 +241,26 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
-             await browser.close()
-             return results
- 
-     except Exception as e:
-         import traceback
-         error_trace = traceback.format_exc()
- 
-         print("=========== DYNAMIC ENGINE CRASH ===========")
-         print(error_trace)
-         print("=============================================")
- 
-         results["classification"] = "Execution Error"
-         results["confidence"] = "Low"
-         results["engine_error"] = {
-             "type": type(e).__name__,
-             "message": str(e),
-             "traceback": error_trace
-         }
- 
-         if browser:
-             try:
-                 await browser.close()
-             except Exception:
-                 pass
- 
--        return results
-\ No newline at end of file
-+        return results
