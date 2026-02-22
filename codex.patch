@@ -1,96 +1,8 @@
 diff --git a/app/dynamic_analysis/sandbox_runner.py b/app/dynamic_analysis/sandbox_runner.py
-index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..96277a829a6765750742906f9f6ce0876a05f0d4 100644
+index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..25096788715400d99a17d83bc1c9ac2b6cecc30f 100644
 --- a/app/dynamic_analysis/sandbox_runner.py
 +++ b/app/dynamic_analysis/sandbox_runner.py
-@@ -105,89 +105,101 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
- 
-             except Exception:
-                 redirect_chain = []
- 
-             results["redirect_chain"] = redirect_chain
- 
-             redirect_analysis = analyze_redirect_chain(url, redirect_chain)
-             results["redirect_intelligence"] = redirect_analysis
- 
-             # =========================
-             # WAIT FOR FULL RENDER
-             # =========================
-             await asyncio.sleep(3)
- 
-             # =========================
-             # PAGE TEXT EXTRACTION
-             # =========================
-             try:
-                 page_text = await page.inner_text("body")
-             except Exception:
-                 page_text = ""
- 
-             keyword_hits = analyze_keywords(page_text)
-             results["keyword_hits"] = keyword_hits
- 
-+            # =========================
-+            # CREDENTIAL INTELLIGENCE
-+            # =========================
-+            credential_analysis = await analyze_credentials(page, url)
-+            results["credential_analysis"] = credential_analysis
-+
-             # =========================
-             # JS INTELLIGENCE
-             # =========================
-             await asyncio.sleep(2)
- 
-+            preliminary_exfiltration = analyze_post_requests(url, network_requests)
-+
-             combined_js_analysis = {
-                 "high_risk": [],
-                 "medium_risk": [],
-                 "credential_related": [],
-             }
- 
-             for js_code in collected_js:
--                js_result = analyze_javascript(js_code)
-+                js_result = analyze_javascript(
-+                    js_code,
-+                    credential_analysis=credential_analysis,
-+                    external_post_detected=preliminary_exfiltration.get("external_post_detected", False),
-+                )
- 
-                 combined_js_analysis["high_risk"].extend(js_result.get("high_risk", []))
-                 combined_js_analysis["medium_risk"].extend(js_result.get("medium_risk", []))
-                 combined_js_analysis["credential_related"].extend(js_result.get("credential_related", []))
- 
-             for key in combined_js_analysis:
-                 combined_js_analysis[key] = list(set(combined_js_analysis[key]))
- 
-+            if not credential_analysis.get("credential_fields_detected", False):
-+                if combined_js_analysis.get("credential_related"):
-+                    combined_js_analysis["credential_related"] = []
-+                if "credential_like_script_behavior" not in combined_js_analysis["medium_risk"]:
-+                    combined_js_analysis["medium_risk"].append("credential_like_script_behavior")
-+
-             if combined_js_analysis["high_risk"]:
-                 summary = "High-risk JavaScript patterns detected."
-             elif combined_js_analysis["credential_related"]:
-                 summary = "Credential-handling JavaScript behavior detected."
-             elif combined_js_analysis["medium_risk"]:
--                summary = "Moderate dynamic behavior patterns detected."
-+                summary = "Moderate dynamic behavior observed."
-             else:
-                 summary = "No suspicious script patterns detected."
- 
-             combined_js_analysis["summary"] = summary
-             results["javascript_intelligence"] = combined_js_analysis
- 
--            # =========================
--            # CREDENTIAL INTELLIGENCE
--            # =========================
--            credential_analysis = await analyze_credentials(page, url)
--            results["credential_analysis"] = credential_analysis
--
-             # =========================
-             # SCREENSHOTS
-             # =========================
-             landing_shot = f"{uuid.uuid4()}_landing.png"
+@@ -173,61 +173,71 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
              await page.screenshot(
                  path=os.path.join(SCREENSHOT_DIR, landing_shot),
                  full_page=False
@@ -112,3 +24,191 @@ index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..96277a829a6765750742906f9f6ce087
              # =========================
              exfiltration_results = analyze_post_requests(url, network_requests)
              results["network_exfiltration"] = exfiltration_results
+ 
+             # =========================
+             # CORRELATION ENGINE
+             # =========================
+-            correlation_result = strict_three_layer_correlation(
+-                redirect_analysis=redirect_analysis,
+-                keyword_hits=keyword_hits,
+-                js_analysis=combined_js_analysis,
+-                credential_analysis=credential_analysis,
+-                network_exfiltration=exfiltration_results,
+-            )
++            try:
++                correlation_result = strict_three_layer_correlation(
++                    redirect_analysis=redirect_analysis,
++                    keyword_hits=keyword_hits,
++                    js_analysis=combined_js_analysis,
++                    credential_analysis=credential_analysis,
++                    network_exfiltration=exfiltration_results,
++                )
++
++                results["classification"] = correlation_result.get(
++                    "classification", "No Significant Dynamic Threats Detected"
++                )
++                results["confidence"] = correlation_result.get("confidence", "Low")
++                results["correlation_signals"] = correlation_result.get("signals", [])
+ 
+-            results["classification"] = correlation_result.get("classification", "Unknown")
+-            results["confidence"] = correlation_result.get("confidence", "Low")
+-            results["correlation_signals"] = correlation_result.get("signals", {})
++            except Exception:
++                results["classification"] = "No Significant Dynamic Threats Detected"
++                results["confidence"] = "Low"
++                results["correlation_signals"] = [
++                    "correlation_engine_fallback"
++                ]
+ 
+             await browser.close()
+             return results
+ 
+     except Exception as e:
+         import traceback
+         error_trace = traceback.format_exc()
+ 
+         print("=========== DYNAMIC ENGINE CRASH ===========")
+         print(error_trace)
+         print("=============================================")
+ 
+         results["classification"] = "Execution Error"
+         results["confidence"] = "Low"
+         results["engine_error"] = {
+             "type": type(e).__name__,
+             "message": str(e),
+             "traceback": error_trace
+         }
+ 
+         if browser:
+             try:
+                 await browser.close()
+             except Exception:
+                 pass
+diff --git a/app/intelligence/correlation_engine.py b/app/intelligence/correlation_engine.py
+index 282d1d48f5648d076288d56cca7d8392c3480803..c8970a914f5086a23ad0331850d526728f4022bb 100644
+--- a/app/intelligence/correlation_engine.py
++++ b/app/intelligence/correlation_engine.py
+@@ -1,95 +1,117 @@
+ # app/intelligence/correlation_engine.py
+ 
+ 
++def _safe_dict(value) -> dict:
++    return value if isinstance(value, dict) else {}
++
++
+ def evaluate_credential_signal(credential_analysis: dict, js_analysis: dict) -> bool:
+     """
+     Layer 1: Credential Signal
+     """
++    credential_analysis = _safe_dict(credential_analysis)
++    js_analysis = _safe_dict(js_analysis)
+ 
+     password_field = credential_analysis.get("credential_fields_detected", False)
+ 
+-    credential_js = bool(js_analysis.get("credential_related"))
++    credential_js = bool(js_analysis.get("credential_related", []))
+ 
+     return password_field or credential_js
+ 
+ 
+ def evaluate_exfiltration_signal(
+     credential_analysis: dict,
+     network_exfiltration: dict,
+ ) -> bool:
+     """
+     Layer 2: Data Exfiltration Signal
+     """
+ 
++    credential_analysis = _safe_dict(credential_analysis)
++    network_exfiltration = _safe_dict(network_exfiltration)
++
+     external_form = credential_analysis.get("external_form_action", False)
+     ip_form = credential_analysis.get("ip_based_form_action", False)
+ 
+     external_post = network_exfiltration.get("external_post_detected", False)
+     ip_post = network_exfiltration.get("ip_post_detected", False)
+ 
+     return external_form or ip_form or external_post or ip_post
+ 
+ 
+ def evaluate_infrastructure_signal(
+     redirect_analysis: dict,
+     keyword_hits: dict,
+ ) -> bool:
+     """
+     Layer 3: Infrastructure Signal
+     """
+ 
++    redirect_analysis = _safe_dict(redirect_analysis)
++    keyword_hits = _safe_dict(keyword_hits)
++
+     cross_root = redirect_analysis.get("cross_root_detected", False)
+     suspicious_redirect = redirect_analysis.get(
+         "suspicious_redirect_detected", False
+     )
+ 
+     phishing_keywords = keyword_hits.get("phishing_keywords", [])
+ 
+     return cross_root or suspicious_redirect or bool(phishing_keywords)
+ 
+ 
+ def strict_three_layer_correlation(
+     redirect_analysis: dict,
+     keyword_hits: dict,
+     js_analysis: dict,
+     credential_analysis: dict,
+     network_exfiltration: dict,
+ ) -> dict:
+     """
+     Strict 3-layer escalation engine.
+     """
+ 
++    redirect_analysis = _safe_dict(redirect_analysis)
++    keyword_hits = _safe_dict(keyword_hits)
++    js_analysis = _safe_dict(js_analysis)
++    credential_analysis = _safe_dict(credential_analysis)
++    network_exfiltration = _safe_dict(network_exfiltration)
++
+     credential_signal = evaluate_credential_signal(
+         credential_analysis, js_analysis
+     )
+ 
+     exfiltration_signal = evaluate_exfiltration_signal(
+         credential_analysis, network_exfiltration
+     )
+ 
+     infrastructure_signal = evaluate_infrastructure_signal(
+         redirect_analysis, keyword_hits
+     )
+ 
++    signals = []
++    if credential_signal:
++        signals.append("credential_signal")
++    if exfiltration_signal:
++        signals.append("exfiltration_signal")
++    if infrastructure_signal:
++        signals.append("infrastructure_signal")
++
+     # STRICT ESCALATION
+     if credential_signal and exfiltration_signal and infrastructure_signal:
+         classification = "Credential Harvesting Infrastructure Detected"
+         confidence = "High"
+ 
+     elif credential_signal and exfiltration_signal:
+         classification = "Suspicious Credential Submission Behavior"
+         confidence = "Medium"
+ 
+     else:
+         classification = "No Significant Dynamic Threats Detected"
+         confidence = "High"
+ 
+     return {
+         "classification": classification,
+         "confidence": confidence,
+-        "signals": {
+-            "credential_signal": credential_signal,
+-            "exfiltration_signal": exfiltration_signal,
+-            "infrastructure_signal": infrastructure_signal,
+-        },
++        "signals": signals,
+     }
