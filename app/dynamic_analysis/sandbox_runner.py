@@ -10,6 +10,7 @@ from app.intelligence.js_intelligence import analyze_javascript
 from app.intelligence.correlation_engine import strict_three_layer_correlation
 from app.intelligence.credential_intelligence import analyze_credentials
 from app.dynamic_analysis.network_monitor import analyze_post_requests
+from app.dynamic_analysis.interaction_engine import simulate_interaction
 
 
 SCREENSHOT_DIR = "screenshots"
@@ -167,14 +168,44 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             results["credential_analysis"] = credential_analysis
 
             # =========================
-            # SCREENSHOTS
+            # SCREENSHOTS (BEFORE INTERACTION)
             # =========================
-            landing_shot = f"{uuid.uuid4()}_landing.png"
-            await page.screenshot(
-                path=os.path.join(SCREENSHOT_DIR, landing_shot),
-                full_page=False
-            )
-            results["screenshots"].append(landing_shot)
+            pre_interaction_shot = f"{uuid.uuid4()}_pre_interaction.png"
+            try:
+                await page.screenshot(
+                    path=os.path.join(SCREENSHOT_DIR, pre_interaction_shot),
+                    full_page=False
+                )
+                results["screenshots"].append(pre_interaction_shot)
+            except Exception:
+                pass
+
+            # =========================
+            # HUMAN-LIKE INTERACTION
+            # =========================
+            try:
+                interaction_results = await simulate_interaction(page)
+                results["interaction_results"] = interaction_results
+            except Exception:
+                results["interaction_results"] = {
+                    "buttons_clicked": 0,
+                    "forms_submitted": 0,
+                    "post_interaction_redirect": False,
+                    "post_interaction_network_activity": False,
+                }
+
+            # =========================
+            # SCREENSHOTS (AFTER INTERACTION)
+            # =========================
+            post_interaction_shot = f"{uuid.uuid4()}_post_interaction.png"
+            try:
+                await page.screenshot(
+                    path=os.path.join(SCREENSHOT_DIR, post_interaction_shot),
+                    full_page=False
+                )
+                results["screenshots"].append(post_interaction_shot)
+            except Exception:
+                pass
 
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await asyncio.sleep(1)
