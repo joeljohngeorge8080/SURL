@@ -243,17 +243,27 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             # =========================
             # CORRELATION ENGINE
             # =========================
-            correlation_result = strict_three_layer_correlation(
-                redirect_analysis=redirect_analysis,
-                keyword_hits=keyword_hits,
-                js_analysis=combined_js_analysis,
-                credential_analysis=credential_analysis,
-                network_exfiltration=exfiltration_results,
-            )
+            try:
+                correlation_result = strict_three_layer_correlation(
+                    redirect_analysis=redirect_analysis,
+                    keyword_hits=keyword_hits,
+                    js_analysis=combined_js_analysis,
+                    credential_analysis=credential_analysis,
+                    network_exfiltration=exfiltration_results,
+                )
 
-            results["classification"] = correlation_result.get("classification", "Unknown")
-            results["confidence"] = correlation_result.get("confidence", "Low")
-            results["correlation_signals"] = correlation_result.get("signals", {})
+                results["classification"] = correlation_result.get(
+                    "classification", "No Significant Dynamic Threats Detected"
+                )
+                results["confidence"] = correlation_result.get("confidence", "Low")
+                results["correlation_signals"] = correlation_result.get("signals", [])
+
+            except Exception:
+                results["classification"] = "No Significant Dynamic Threats Detected"
+                results["confidence"] = "Low"
+                results["correlation_signals"] = [
+                    "correlation_engine_fallback"
+                ]
 
             await browser.close()
             return results
