@@ -252,18 +252,17 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                     network_exfiltration=exfiltration_results,
                 )
 
-                results["classification"] = correlation_result.get(
-                    "classification", "No Significant Dynamic Threats Detected"
-                )
-                results["confidence"] = correlation_result.get("confidence", "Low")
-                results["correlation_signals"] = correlation_result.get("signals", [])
+            except Exception as e:
+                correlation_result = {
+                    "classification": "No Significant Dynamic Threats Detected",
+                    "confidence": "Low",
+                    "signals": ["Correlation engine fallback triggered."]
+                }
 
-            except Exception:
-                results["classification"] = "No Significant Dynamic Threats Detected"
-                results["confidence"] = "Low"
-                results["correlation_signals"] = [
-                    "correlation_engine_fallback"
-                ]
+            results["classification"] = correlation_result.get("classification", "No Significant Dynamic Threats Detected")
+            results["confidence"] = correlation_result.get("confidence", "Low")
+            results["correlation_signals"] = correlation_result.get("signals", [])
+
 
             await browser.close()
             return results
@@ -278,6 +277,7 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
         results["classification"] = "Execution Error"
         results["confidence"] = "Low"
+        results["correlation_signals"] = ["Correlation engine fallback triggered."]
         results["engine_error"] = {
             "type": type(e).__name__,
             "message": str(e),
