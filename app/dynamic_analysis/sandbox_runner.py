@@ -103,7 +103,6 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                     if req.url not in redirect_chain:
                         redirect_chain.insert(0, req.url)
                     req = req.redirected_from
-
             except Exception:
                 redirect_chain = []
 
