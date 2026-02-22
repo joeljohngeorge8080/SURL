@@ -25,7 +25,14 @@ async def scan_selected(request: ScanRequest):
 
 @router.post("/scan-dynamic")
 async def scan_dynamic(request: ScanRequest):
-    return await run_dynamic_scan(request.url)
+    try:
+        return await run_dynamic_scan(request.url)
+    except Exception as e:
+        import traceback
+        return {
+            "error": "Internal scanning engine failure",
+            "traceback": traceback.format_exc()
+        }
 
 
 @router.post("/scan-image")

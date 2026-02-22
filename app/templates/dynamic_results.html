@@ -516,6 +516,19 @@ footer {
 // Retrieve dynamic result from localStorage
 const dynamicResult = JSON.parse(localStorage.getItem("dynamicResult"));
 
+// ============================================================
+// ERROR HANDLING
+// ============================================================
+if (dynamicResult && dynamicResult.error) {
+    document.body.innerHTML = `
+        <div style="padding:50px;color:red;background:#000;font-family:monospace;">
+            <h3 style="color:#ff6b6b;margin-bottom:20px;">Engine Error</h3>
+            <pre style="background:#111;padding:20px;border-radius:8px;overflow-x:auto;border:1px solid #ff6b6b;">${dynamicResult.traceback || dynamicResult.error}</pre>
+            <a href="/" style="color:#25e7a2;text-decoration:none;margin-top:20px;display:inline-block;">← Return to Home</a>
+        </div>
+    `;
+}
+
 if (dynamicResult && dynamicResult.dynamic_analysis) {
     const data = dynamicResult.dynamic_analysis;
 
@@ -835,12 +848,13 @@ if (dynamicResult && dynamicResult.dynamic_analysis) {
         if (hasAdultKeywords) {
             gallery.innerHTML = "<p class='text-muted'>Screenshot preview disabled due to adult content classification.</p>";
         } else if (shots.length > 0) {
+            let galleryHTML = "";
             shots.forEach((ss) => {
                 const raw = typeof ss === "string" ? ss : (ss.path || ss.name || "");
                 const imageName = raw.split("/").pop();
                 const label = typeof ss === "object" && ss.type ? ss.type : "Screenshot";
 
-                gallery.innerHTML += `
+                galleryHTML += `
                     <div class="col-md-4">
                         <div class="card bg-dark p-2">
                             <small class="text-muted text-center">${label}</small>
@@ -849,6 +863,7 @@ if (dynamicResult && dynamicResult.dynamic_analysis) {
                     </div>
                 `;
             });
+            gallery.innerHTML = galleryHTML;
         } else {
             gallery.innerHTML = "<p class='text-muted'>No screenshots captured</p>";
         }

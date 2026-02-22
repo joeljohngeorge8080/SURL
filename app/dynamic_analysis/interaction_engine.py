@@ -31,6 +31,10 @@ async def simulate_interaction(page):
         for button in buttons[:5]:  # limit to 5
             try:
                 if await button.is_visible():
+                    # Human-like mouse movement before clicking
+                    await page.mouse.move(random.randint(100, 500), random.randint(100, 500))
+                    await asyncio.sleep(random.uniform(0.3, 1.0))
+                    
                     await button.click(timeout=2000)
                     interaction_results["buttons_clicked"] += 1
                     await asyncio.sleep(2)
@@ -50,8 +54,12 @@ async def simulate_interaction(page):
 
                 if password_field:
                     if email_field:
+                        await email_field.click()
+                        await asyncio.sleep(random.uniform(0.2, 0.5))
                         await human_type(email_field, FAKE_EMAIL)
 
+                    await password_field.click()
+                    await asyncio.sleep(random.uniform(0.2, 0.5))
                     await human_type(password_field, FAKE_PASSWORD)
 
                     submit_button = await form.query_selector("button[type=submit], input[type=submit]")

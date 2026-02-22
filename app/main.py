@@ -32,3 +32,4 @@ app.mount("/", StaticFiles(directory=html_path, html=True), name="static")
 
 # Global Exception Handler
 app.add_exception_handler(Exception, global_exception_handler)
+

@@ -2,6 +2,11 @@ import re
 
 
 def analyze_javascript(js_content: str) -> dict:
+    """
+    Improved JavaScript intelligence.
+    Reduces false positives on legitimate sites.
+    """
+
     findings = {
         "high_risk": [],
         "medium_risk": [],
@@ -9,61 +14,87 @@ def analyze_javascript(js_content: str) -> dict:
         "summary": ""
     }
 
-    if not js_content:
-        findings["summary"] = "No JavaScript content available."
+    try:
+        if not js_content or not isinstance(js_content, str):
+            findings["summary"] = "No JavaScript content available."
+            return findings
+
+        if len(js_content) > 1_000_000:
+            findings["summary"] = "JavaScript content too large for analysis."
+            return findings
+
+        js = js_content.lower()
+
+        # ==========================
+        # STRICT HIGH RISK DETECTION
+        # ==========================
+
+        # Only high risk if eval(atob(...)) pattern exists
+        if re.search(r"eval\s*\(\s*atob\s*\(", js):
+            findings["high_risk"].append("eval_atob_execution")
+
+        # Base64 long string executed inside eval
+        if re.search(r"eval\s*\(\s*['\"][a-z0-9+/=]{100,}['\"]\s*\)", js):
+            findings["high_risk"].append("long_base64_eval")
+
+        # External script injection
+        if re.search(
+            r"createelement\s*\(\s*['\"]script['\"]\).*src\s*=\s*['\"]https?://",
+            js
+        ):
+            findings["high_risk"].append("external_script_injection")
+
+        # ==========================
+        # CREDENTIAL RELATED
+        # ==========================
+
+        if re.search(r"addeventlistener\s*\(\s*['\"]submit", js):
+            findings["credential_related"].append("form_submit_listener")
+
+        if re.search(r"fetch\s*\(.*method\s*:\s*['\"]post", js):
+            findings["credential_related"].append("fetch_post_submission")
+
+        if re.search(r"axios\.post", js):
+            findings["credential_related"].append("axios_post_submission")
+
+        if re.search(r"queryselector.*password", js):
+            findings["credential_related"].append("password_field_reference")
+
+        # ==========================
+        # MEDIUM RISK
+        # ==========================
+
+        if re.search(r"window\.location\s*=\s*['\"]https?://", js):
+            findings["medium_risk"].append("window_redirect")
+
+        if re.search(r"settimeout\s*\(", js):
+            findings["medium_risk"].append("timeout_redirect")
+
+        if re.search(
+            r"createelement\s*\(\s*['\"]script['\"]",
+            js
+        ) and "external_script_injection" not in findings["high_risk"]:
+            findings["medium_risk"].append("dynamic_script_injection")
+
+        # ==========================
+        # SUMMARY
+        # ==========================
+
+        if findings["high_risk"]:
+            findings["summary"] = "High-risk encoded script execution detected."
+        elif findings["credential_related"]:
+            findings["summary"] = "Credential-handling JavaScript behavior detected."
+        elif findings["medium_risk"]:
+            findings["summary"] = "Moderate dynamic script behavior observed."
+        else:
+            findings["summary"] = "No suspicious script patterns detected."
+
         return findings
 
-    window_redirect = bool(re.search(r"window\.location", js_content))
-    timeout_redirect = bool(re.search(r"setTimeout\s*\(", js_content))
-    dynamic_script = bool(re.search(r"createElement\s*\(\s*['\"]script", js_content))
-
-    password_listener = bool(re.search(r"querySelector.*password", js_content))
-    form_submit_listener = bool(re.search(r"addEventListener\s*\(\s*['\"]submit", js_content))
-    fetch_post = bool(re.search(r"fetch\s*\(.*method\s*:\s*['\"]POST", js_content))
-    axios_post = bool(re.search(r"axios\.post", js_content))
-
-    # -------------------------
-    # High Risk Logic (STRICT)
-    # -------------------------
-    encoded_exec_pattern = r"(eval|Function)\s*\(\s*atob\s*\(\s*['\"][A-Za-z0-9+/=]{200,}['\"]\s*\)\s*\)"
-
-    if re.search(encoded_exec_pattern, js_content):
-        findings["high_risk"].append("encoded_eval_execution")
-
-    # -------------------------
-    # Credential Logic
-    # -------------------------
-
-    if password_listener or form_submit_listener:
-        findings["credential_related"].append("credential_event_listener")
-
-    if fetch_post or axios_post:
-        findings["credential_related"].append("network_submission_logic")
-
-    # -------------------------
-    # Medium Behavior
-    # -------------------------
-
-    if window_redirect:
-        findings["medium_risk"].append("window_redirect")
-
-    if timeout_redirect:
-        findings["medium_risk"].append("timeout_redirect")
-
-    if dynamic_script:
-        findings["medium_risk"].append("dynamic_script_injection")
-
-    # -------------------------
-    # Summary
-    # -------------------------
-
-    if findings["high_risk"]:
-        findings["summary"] = "High-risk encoded script execution detected."
-    elif findings["credential_related"]:
-        findings["summary"] = "Credential-handling JavaScript behavior detected."
-    elif findings["medium_risk"]:
-        findings["summary"] = "Moderate dynamic script behavior observed."
-    else:
-        findings["summary"] = "No suspicious script patterns detected."
-
-    return findings
+    except Exception:
+        return {
+            "high_risk": [],
+            "medium_risk": [],
+            "credential_related": [],
+            "summary": "JavaScript analysis failed safely."
+        }

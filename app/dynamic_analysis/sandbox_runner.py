@@ -24,18 +24,20 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
         "keyword_hits": {},
         "javascript_intelligence": {},
         "credential_analysis": {},
+        "network_exfiltration": {},
         "screenshots": [],
         "classification": "Unknown",
         "confidence": "Low",
     }
-    
+
     if static_results is None:
         static_results = {}
 
-    
+    browser = None  # 🔥 FIX: define before try
 
     try:
         async with async_playwright() as p:
+
             browser = await p.chromium.launch(headless=True)
 
             context = await browser.new_context(
@@ -45,9 +47,9 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
             page = await context.new_page()
 
-            # -------------------------
+            # =========================
             # NETWORK MONITORING
-            # -------------------------
+            # =========================
             network_requests = []
             collected_js = []
 
@@ -55,10 +57,7 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 try:
                     headers = request.headers
                     content_length = headers.get("content-length")
-                    if content_length:
-                        content_length = int(content_length)
-                    else:
-                        content_length = 0
+                    content_length = int(content_length) if content_length else 0
 
                     network_requests.append({
                         "method": request.method,
@@ -73,38 +72,36 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             async def capture_response(response):
                 try:
                     content_type = response.headers.get("content-type", "")
-
                     if "javascript" in content_type.lower():
                         body = await response.text()
-
-                        # Prevent memory explosion
                         if body and len(body) < 500_000:
                             collected_js.append(body)
-
                 except Exception:
                     pass
 
             page.on("response", capture_response)
 
-            response = await page.goto(url, wait_until="domcontentloaded"
-, timeout=15000)
+            response = await page.goto(
+                url,
+                wait_until="domcontentloaded",
+                timeout=15000
+            )
 
             if not response:
                 raise Exception("Page failed to load")
 
-            # -------------------------
+            # =========================
             # REDIRECT EXTRACTION
-            # -------------------------
+            # =========================
             redirect_chain = []
 
             try:
-                if response and response.request:
-                    req = response.request
+                req = response.request if response else None
 
-                    # Walk backward safely
-                    while req:
+                while req:
+                    if req.url not in redirect_chain:
                         redirect_chain.insert(0, req.url)
-                        req = req.redirected_from
+                    req = req.redirected_from
 
             except Exception:
                 redirect_chain = []
@@ -114,14 +111,14 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             redirect_analysis = analyze_redirect_chain(url, redirect_chain)
             results["redirect_intelligence"] = redirect_analysis
 
-            # -------------------------
+            # =========================
             # WAIT FOR FULL RENDER
-            # -------------------------
+            # =========================
             await asyncio.sleep(3)
 
-            # -------------------------
+            # =========================
             # PAGE TEXT EXTRACTION
-            # -------------------------
+            # =========================
             try:
                 page_text = await page.inner_text("body")
             except Exception:
@@ -130,9 +127,9 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             keyword_hits = analyze_keywords(page_text)
             results["keyword_hits"] = keyword_hits
 
-            # -------------------------
+            # =========================
             # JS INTELLIGENCE
-            # -------------------------
+            # =========================
             await asyncio.sleep(2)
 
             combined_js_analysis = {
@@ -142,10 +139,11 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             }
 
             for js_code in collected_js:
-                result = analyze_javascript(js_code)
-                combined_js_analysis["high_risk"].extend(result["high_risk"])
-                combined_js_analysis["medium_risk"].extend(result["medium_risk"])
-                combined_js_analysis["credential_related"].extend(result["credential_related"])
+                js_result = analyze_javascript(js_code)
+
+                combined_js_analysis["high_risk"].extend(js_result.get("high_risk", []))
+                combined_js_analysis["medium_risk"].extend(js_result.get("medium_risk", []))
+                combined_js_analysis["credential_related"].extend(js_result.get("credential_related", []))
 
             for key in combined_js_analysis:
                 combined_js_analysis[key] = list(set(combined_js_analysis[key]))
@@ -160,40 +158,43 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 summary = "No suspicious script patterns detected."
 
             combined_js_analysis["summary"] = summary
-
             results["javascript_intelligence"] = combined_js_analysis
-            
-            # -------------------------
+
+            # =========================
             # CREDENTIAL INTELLIGENCE
-            # -------------------------
+            # =========================
             credential_analysis = await analyze_credentials(page, url)
             results["credential_analysis"] = credential_analysis
 
-            # -------------------------
+            # =========================
             # SCREENSHOTS
-            # -------------------------
+            # =========================
             landing_shot = f"{uuid.uuid4()}_landing.png"
-            landing_path = os.path.join(SCREENSHOT_DIR, landing_shot)
-            await page.screenshot(path=landing_path, full_page=False)
+            await page.screenshot(
+                path=os.path.join(SCREENSHOT_DIR, landing_shot),
+                full_page=False
+            )
             results["screenshots"].append(landing_shot)
 
             await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await asyncio.sleep(1)
 
             scroll_shot = f"{uuid.uuid4()}_scrolled.png"
-            scroll_path = os.path.join(SCREENSHOT_DIR, scroll_shot)
-            await page.screenshot(path=scroll_path, full_page=True)
+            await page.screenshot(
+                path=os.path.join(SCREENSHOT_DIR, scroll_shot),
+                full_page=True
+            )
             results["screenshots"].append(scroll_shot)
 
-            # -------------------------
-            # NETWORK EXFILTRATION ANALYSIS
-            # -------------------------
+            # =========================
+            # NETWORK EXFILTRATION
+            # =========================
             exfiltration_results = analyze_post_requests(url, network_requests)
             results["network_exfiltration"] = exfiltration_results
 
-            # -------------------------
+            # =========================
             # CORRELATION ENGINE
-            # -------------------------
+            # =========================
             correlation_result = strict_three_layer_correlation(
                 redirect_analysis=redirect_analysis,
                 keyword_hits=keyword_hits,
@@ -202,19 +203,33 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 network_exfiltration=exfiltration_results,
             )
 
-            results["classification"] = correlation_result["classification"]
-            results["confidence"] = correlation_result["confidence"]
-            results["correlation_signals"] = correlation_result["signals"]
-
+            results["classification"] = correlation_result.get("classification", "Unknown")
+            results["confidence"] = correlation_result.get("confidence", "Low")
+            results["correlation_signals"] = correlation_result.get("signals", {})
 
             await browser.close()
+            return results
 
     except Exception as e:
         import traceback
-        print(f"Dynamic Analysis Error: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
+        error_trace = traceback.format_exc()
+
+        print("=========== DYNAMIC ENGINE CRASH ===========")
+        print(error_trace)
+        print("=============================================")
+
         results["classification"] = "Execution Error"
         results["confidence"] = "Low"
+        results["engine_error"] = {
+            "type": type(e).__name__,
+            "message": str(e),
+            "traceback": error_trace
+        }
 
+        if browser:
+            try:
+                await browser.close()
+            except Exception:
+                pass
 
-    return results
+        return results
