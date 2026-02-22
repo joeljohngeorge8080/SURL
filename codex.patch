@@ -112,3 +112,175 @@ index 0ae5d02c62365d3b4631c17005a49b0f2d630bad..8504f2e502d0c15808c2bf9b6f83949f
              # =========================
              exfiltration_results = analyze_post_requests(url, network_requests)
              results["network_exfiltration"] = exfiltration_results
+diff --git a/app/intelligence/correlation_engine.py b/app/intelligence/correlation_engine.py
+index 282d1d48f5648d076288d56cca7d8392c3480803..b14b16f7476ea4d1da6277d903917b7956ceead6 100644
+--- a/app/intelligence/correlation_engine.py
++++ b/app/intelligence/correlation_engine.py
+@@ -1,38 +1,39 @@
+ # app/intelligence/correlation_engine.py
+ 
+ 
+ def evaluate_credential_signal(credential_analysis: dict, js_analysis: dict) -> bool:
+     """
+     Layer 1: Credential Signal
+     """
+ 
+     password_field = credential_analysis.get("credential_fields_detected", False)
++    external_form = credential_analysis.get("external_form_action", False)
++    ip_form = credential_analysis.get("ip_based_form_action", False)
+ 
+-    credential_js = bool(js_analysis.get("credential_related"))
+-
+-    return password_field or credential_js
++    # JS-only signals must not trigger credential escalation.
++    return password_field or external_form or ip_form
+ 
+ 
+ def evaluate_exfiltration_signal(
+     credential_analysis: dict,
+     network_exfiltration: dict,
+ ) -> bool:
+     """
+     Layer 2: Data Exfiltration Signal
+     """
+ 
+     external_form = credential_analysis.get("external_form_action", False)
+     ip_form = credential_analysis.get("ip_based_form_action", False)
+ 
+     external_post = network_exfiltration.get("external_post_detected", False)
+     ip_post = network_exfiltration.get("ip_post_detected", False)
+ 
+     return external_form or ip_form or external_post or ip_post
+ 
+ 
+ def evaluate_infrastructure_signal(
+     redirect_analysis: dict,
+     keyword_hits: dict,
+ ) -> bool:
+     """
+     Layer 3: Infrastructure Signal
+diff --git a/app/intelligence/js_intelligence.py b/app/intelligence/js_intelligence.py
+index 43b2ca7ef7a3626c8cc2e046a17e9fbf69745ee5..75538da1ac9845e1cf86d5b68ba2e76ffe7bc0b4 100644
+--- a/app/intelligence/js_intelligence.py
++++ b/app/intelligence/js_intelligence.py
+@@ -1,100 +1,117 @@
+ import re
+ 
+ 
+-def analyze_javascript(js_content: str) -> dict:
++def analyze_javascript(
++    js_content: str,
++    credential_analysis: dict = None,
++    external_post_detected: bool = False,
++) -> dict:
+     """
+     Improved JavaScript intelligence.
+     Reduces false positives on legitimate sites.
+     """
+ 
+     findings = {
+         "high_risk": [],
+         "medium_risk": [],
+         "credential_related": [],
+         "summary": ""
+     }
+ 
+     try:
+         if not js_content or not isinstance(js_content, str):
+             findings["summary"] = "No JavaScript content available."
+             return findings
+ 
+         if len(js_content) > 1_000_000:
+             findings["summary"] = "JavaScript content too large for analysis."
+             return findings
+ 
+         js = js_content.lower()
+ 
++        credential_analysis = credential_analysis or {}
++        credential_fields_detected = credential_analysis.get("credential_fields_detected", False)
++        external_form_action = credential_analysis.get("external_form_action", False)
++        strong_credential_context = (
++            credential_fields_detected
++            or external_post_detected
++            or external_form_action
++        )
++
+         # ==========================
+         # STRICT HIGH RISK DETECTION
+         # ==========================
+ 
+         # Only high risk if eval(atob(...)) pattern exists
+         if re.search(r"eval\s*\(\s*atob\s*\(", js):
+             findings["high_risk"].append("eval_atob_execution")
+ 
+         # Base64 long string executed inside eval
+         if re.search(r"eval\s*\(\s*['\"][a-z0-9+/=]{100,}['\"]\s*\)", js):
+             findings["high_risk"].append("long_base64_eval")
+ 
+         # External script injection
+         if re.search(
+             r"createelement\s*\(\s*['\"]script['\"]\).*src\s*=\s*['\"]https?://",
+             js
+         ):
+             findings["high_risk"].append("external_script_injection")
+ 
+         # ==========================
+         # CREDENTIAL RELATED
+         # ==========================
+ 
+         if re.search(r"addeventlistener\s*\(\s*['\"]submit", js):
+             findings["credential_related"].append("form_submit_listener")
+ 
+         if re.search(r"fetch\s*\(.*method\s*:\s*['\"]post", js):
+             findings["credential_related"].append("fetch_post_submission")
+ 
+         if re.search(r"axios\.post", js):
+             findings["credential_related"].append("axios_post_submission")
+ 
+         if re.search(r"queryselector.*password", js):
+             findings["credential_related"].append("password_field_reference")
+ 
++        if findings["credential_related"] and not strong_credential_context:
++            findings["credential_related"] = []
++            findings["medium_risk"].append("credential_like_script_behavior")
++
+         # ==========================
+         # MEDIUM RISK
+         # ==========================
+ 
+         if re.search(r"window\.location\s*=\s*['\"]https?://", js):
+             findings["medium_risk"].append("window_redirect")
+ 
+         if re.search(r"settimeout\s*\(", js):
+             findings["medium_risk"].append("timeout_redirect")
+ 
+         if re.search(
+             r"createelement\s*\(\s*['\"]script['\"]",
+             js
+         ) and "external_script_injection" not in findings["high_risk"]:
+             findings["medium_risk"].append("dynamic_script_injection")
+ 
+         # ==========================
+         # SUMMARY
+         # ==========================
+ 
+         if findings["high_risk"]:
+             findings["summary"] = "High-risk encoded script execution detected."
+         elif findings["credential_related"]:
+             findings["summary"] = "Credential-handling JavaScript behavior detected."
+         elif findings["medium_risk"]:
+             findings["summary"] = "Moderate dynamic script behavior observed."
+         else:
+             findings["summary"] = "No suspicious script patterns detected."
+ 
+         return findings
+ 
+     except Exception:
+         return {
+             "high_risk": [],
+             "medium_risk": [],
+             "credential_related": [],
+             "summary": "JavaScript analysis failed safely."
+-        }
+\ No newline at end of file
++        }
