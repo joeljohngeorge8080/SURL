@@ -3,6 +3,28 @@ from urllib.parse import urlparse
 from datetime import datetime
 
 
+def _extract_domain(value: str) -> str:
+    """Return a normalized domain from either a URL or a raw hostname."""
+    if not value:
+        return ""
+
+    cleaned_value = "".join(value.strip().split()).lower()
+    if not cleaned_value:
+        return ""
+
+    candidate = cleaned_value
+    if "://" not in cleaned_value:
+        candidate = f"http://{cleaned_value}"
+
+    parsed = urlparse(candidate)
+    domain = parsed.hostname or parsed.netloc or cleaned_value
+
+    if domain.startswith("www."):
+        domain = domain[4:]
+
+    return domain.strip(".")
+
+
 def whois_check(url):
     """
     Performs WHOIS analysis on the domain.
@@ -17,7 +39,7 @@ def whois_check(url):
     }
 
     try:
-        domain = urlparse(url).netloc
+        domain = _extract_domain(url)
         if not domain:
             return signals
 
