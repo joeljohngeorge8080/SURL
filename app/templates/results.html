@@ -685,6 +685,30 @@ if(result){
 const runDynamicBtn = document.getElementById("runDynamicBtn");
 if (runDynamicBtn) {
     runDynamicBtn.addEventListener("click", async () => {
+        if (runDynamicBtn.dataset.loading === "true") {
+            return;
+        }
+
+        const navFlaskBtn = document.getElementById("navFlaskBtn");
+        const setButtonLoading = (btn, loadingHtml) => {
+            if (!btn) return;
+            if (!btn.dataset.originalHtml) {
+                btn.dataset.originalHtml = btn.innerHTML;
+            }
+            btn.dataset.loading = "true";
+            btn.innerHTML = loadingHtml;
+            btn.disabled = true;
+            btn.classList.add("disabled");
+        };
+
+        setButtonLoading(
+            runDynamicBtn,
+            "<span class='spinner-border spinner-border-sm me-2' role='status' aria-hidden='true'></span>Loading..."
+        );
+        setButtonLoading(
+            navFlaskBtn,
+            "<span class='spinner-border spinner-border-sm' role='status' aria-hidden='true'></span>"
+        );
 
         const result = JSON.parse(localStorage.getItem("scanResult"));
         const url = result.url;
@@ -741,11 +765,11 @@ function scrollToSection(sectionId){
 /* Flask Button Functionality */
 document.addEventListener('DOMContentLoaded', function(){
     const navFlaskBtn = document.getElementById('navFlaskBtn');
-    const dynamicAnalysisBtn = document.getElementById('dynamicAnalysisBtn');
+    const runDynamicBtn = document.getElementById('runDynamicBtn');
     
-    if(navFlaskBtn && dynamicAnalysisBtn){
+    if(navFlaskBtn && runDynamicBtn){
         navFlaskBtn.addEventListener('click', function(){
-            dynamicAnalysisBtn.click();
+            runDynamicBtn.click();
         });
     }
 });
