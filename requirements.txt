@@ -10,3 +10,4 @@ tldextract
 python-whois
 Levenshtein
 Pillow
+pydantic-settings
