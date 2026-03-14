@@ -179,12 +179,13 @@ body {
 }
 
 .no-screenshot {
-    color: #888;
+    color: #ffffff;
     font-style: italic;
     padding: 40px;
     background: rgba(255, 255, 255, 0.02);
     border: 2px dashed rgba(255, 255, 255, 0.1);
     border-radius: 12px;
+    text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
 }
 
 /* Findings Section */
@@ -670,7 +671,7 @@ if (dynamicResult && dynamicResult.dynamic_analysis) {
         }
 
         if (keywordHTML === "") {
-            keywordHTML = "<p class='text-muted'>No suspicious keywords detected.</p>";
+            keywordHTML = "<p class='text-white'>No suspicious keywords detected.</p>";
         }
 
         keywordDiv.innerHTML = keywordHTML;

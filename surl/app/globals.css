@@ -1,0 +1,59 @@
+@import "tailwindcss";
+/* Threat Intelligence Card Styles */
+.threat-intelligence-card {
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.threat-intelligence-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 229, 255, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+/* Font Awesome Icons */
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  src: url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-solid-900.woff2") format("woff2");
+  font-weight: 900;
+}
+
+@font-face {
+  font-family: "Font Awesome 6 Brands";
+  src: url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/webfonts/fa-brands-400.woff2") format("woff2");
+  font-weight: 400;
+}
+
+[class^="fas "]::before,
+[class*=" fas "]::before,
+[class^="fab "]::before,
+[class*=" fab "]::before {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands";
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Gradient text utilities */
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops)) !important;
+}
+
+.from-cyan-400 {
+  --tw-gradient-from: #22d3ee;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(34, 211, 238, 0)) !important;
+}
+
+.to-blue-500 {
+  --tw-gradient-to: #3b82f6 !important;
+}
+
+.bg-clip-text {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

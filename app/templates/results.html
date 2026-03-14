@@ -106,6 +106,7 @@ body{
     font-weight:700;
     margin:auto;
     box-shadow:0 0 40px rgba(37,231,162,0.5);
+    color:#ffffff;
 }
 
 .card-custom{
@@ -281,6 +282,17 @@ h5{
     margin-bottom:5px;
 }
 
+.risk-breakdown-value{
+    color:#ffffff;
+    font-weight:700;
+    text-shadow:0 0 10px rgba(37,231,162,0.2);
+}
+
+.risk-breakdown-label{
+    color:#ffffff;
+    font-weight:600;
+}
+
 .safety-advisory{
     background:rgba(255, 107, 107, 0.08);
     border-left:4px solid #ff6b6b;
@@ -397,16 +409,16 @@ footer{
 
 <div class="row">
 <div class="col-md-4">
-<h6>Transport Risk</h6>
-<p id="transportRisk" class="fs-4 text-warning">0</p>
+<h6 class="risk-breakdown-label">Transport Risk</h6>
+<p id="transportRisk" class="fs-4 risk-breakdown-value">0</p>
 </div>
 <div class="col-md-4">
-<h6>Phishing Risk</h6>
-<p id="phishingRisk" class="fs-4 text-danger">0</p>
+<h6 class="risk-breakdown-label">Phishing Risk</h6>
+<p id="phishingRisk" class="fs-4 risk-breakdown-value">0</p>
 </div>
 <div class="col-md-4">
-<h6>Confidence Score</h6>
-<p id="confidenceScore" class="fs-4 text-info">0%</p>
+<h6 class="risk-breakdown-label">Confidence Score</h6>
+<p id="confidenceScore" class="fs-4 risk-breakdown-value">0%</p>
 </div>
 </div>
 </div>
@@ -673,6 +685,30 @@ if(result){
 const runDynamicBtn = document.getElementById("runDynamicBtn");
 if (runDynamicBtn) {
     runDynamicBtn.addEventListener("click", async () => {
+        if (runDynamicBtn.dataset.loading === "true") {
+            return;
+        }
+
+        const navFlaskBtn = document.getElementById("navFlaskBtn");
+        const setButtonLoading = (btn, loadingHtml) => {
+            if (!btn) return;
+            if (!btn.dataset.originalHtml) {
+                btn.dataset.originalHtml = btn.innerHTML;
+            }
+            btn.dataset.loading = "true";
+            btn.innerHTML = loadingHtml;
+            btn.disabled = true;
+            btn.classList.add("disabled");
+        };
+
+        setButtonLoading(
+            runDynamicBtn,
+            "<span class='spinner-border spinner-border-sm me-2' role='status' aria-hidden='true'></span>Loading..."
+        );
+        setButtonLoading(
+            navFlaskBtn,
+            "<span class='spinner-border spinner-border-sm' role='status' aria-hidden='true'></span>"
+        );
 
         const result = JSON.parse(localStorage.getItem("scanResult"));
         const url = result.url;
@@ -729,11 +765,11 @@ function scrollToSection(sectionId){
 /* Flask Button Functionality */
 document.addEventListener('DOMContentLoaded', function(){
     const navFlaskBtn = document.getElementById('navFlaskBtn');
-    const dynamicAnalysisBtn = document.getElementById('dynamicAnalysisBtn');
+    const runDynamicBtn = document.getElementById('runDynamicBtn');
     
-    if(navFlaskBtn && dynamicAnalysisBtn){
+    if(navFlaskBtn && runDynamicBtn){
         navFlaskBtn.addEventListener('click', function(){
-            dynamicAnalysisBtn.click();
+            runDynamicBtn.click();
         });
     }
 });

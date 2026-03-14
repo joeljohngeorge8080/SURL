@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+playwright
+beautifulsoup4
+dnspython
+pydantic
+pytesseract
+requests
+tldextract
+python-whois
+Levenshtein
+Pillow
+pydantic-settings

@@ -1,0 +1,1 @@
+The lag is fixed! I just reduced the WebGL overhead to make scrolling smooth again.
