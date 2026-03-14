@@ -25,10 +25,12 @@ app.include_router(router)
 # Get absolute path to html folder
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 html_path = os.path.join(BASE_DIR, "templates")
+static_path = os.path.join(BASE_DIR, "static")
 
 app.mount("/screenshots", StaticFiles(directory="screenshots"), name="screenshots")
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
-app.mount("/", StaticFiles(directory=html_path, html=True), name="static")
+app.mount("/", StaticFiles(directory=html_path, html=True), name="html")
 
 # Global Exception Handler
 app.add_exception_handler(Exception, global_exception_handler)
