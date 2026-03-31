@@ -1,13 +1,42 @@
-fastapi
-uvicorn
-playwright
-beautifulsoup4
-dnspython
-pydantic
-pytesseract
-requests
-tldextract
-python-whois
-Levenshtein
-Pillow
-pydantic-settings
+# ============================================================
+# SURL — Sentinel URL
+# Requirements (pinned for reproducibility)
+# ============================================================
+
+# ── Web Framework ────────────────────────────────────────────
+fastapi==0.129.0
+uvicorn==0.41.0
+gunicorn>=22.0.0            # For production: gunicorn -k uvicorn.workers.UvicornWorker
+starlette==0.52.1
+Jinja2==3.1.6
+python-multipart==0.0.22    # Required for UploadFile / multipart form support
+
+# ── Data Validation ──────────────────────────────────────────
+pydantic==2.12.5
+pydantic-settings==2.13.1
+
+# ── Browser Automation (Dynamic Sandbox) ─────────────────────
+playwright==1.58.0
+# After install, run: playwright install chromium && playwright install-deps chromium
+
+# ── Static Analysis ──────────────────────────────────────────
+beautifulsoup4==4.14.3
+dnspython==2.8.0
+python-whois==0.9.6
+tldextract==5.3.1
+requests==2.32.5
+
+# ── OCR (Image URL Extraction) ───────────────────────────────
+pytesseract==0.3.13
+Pillow==12.1.1
+# System dependency required: sudo apt-get install tesseract-ocr
+
+# ── String / Text Utilities ───────────────────────────────────
+Levenshtein==0.27.3
+
+# ── Async Utilities ───────────────────────────────────────────
+anyio==4.12.1
+
+# ── Async Workers (optional — required if using Celery) ───────
+# celery>=5.4.0
+# redis>=5.0.0
