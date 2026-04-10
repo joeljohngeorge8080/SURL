@@ -8,7 +8,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.12"
-  IMAGE_NAME: surl-api
+  IMAGE_NAME: ${{ github.event.repository.name }}
 
 jobs:
   # ──────────────────────────────────────────────────
@@ -83,6 +83,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
