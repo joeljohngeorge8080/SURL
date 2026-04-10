@@ -2,7 +2,6 @@
 tests/test_scoring.py
 Unit tests for the scoring engine.
 """
-import pytest
 from scoring_engine.score_calculator import calculate_risk_score
 from scoring_engine.pbh_fingerprint import generate_pbh_fingerprint
 

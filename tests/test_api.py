@@ -5,7 +5,6 @@ These tests use httpx's AsyncClient against the real app instance.
 No server needs to be running — the app is tested in-process.
 """
 import pytest
-import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 
 

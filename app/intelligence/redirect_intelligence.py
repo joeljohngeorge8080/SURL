@@ -37,7 +37,6 @@ def analyze_redirect_chain(original_url: str, chain: list) -> dict:
         }
 
     original_root = extract_root_domain(original_url)
-    original_tld = extract_tld(original_url)
 
     root_domains = []
     suspicious_tld_detected = False

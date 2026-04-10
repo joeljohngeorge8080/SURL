@@ -1,6 +1,5 @@
 import asyncio
 from playwright.async_api import async_playwright
-from urllib.parse import urlparse
 import os
 
 from app.intelligence.redirect_intelligence import analyze_redirect_chain

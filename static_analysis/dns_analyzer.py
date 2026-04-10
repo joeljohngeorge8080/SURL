@@ -27,7 +27,6 @@ def dns_check(url):
         signals["dns_resolves"] = True
 
         ip_list = []
-        ttl_values = []
 
         for answer in answers:
             ip = answer.address

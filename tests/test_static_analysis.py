@@ -2,7 +2,6 @@
 tests/test_static_analysis.py
 Unit tests for the static analysis pipeline.
 """
-import pytest
 from static_analysis.url_normalizer import normalize_url, validate_domain
 from static_analysis.lexical_analyzer import lexical_analysis
 from static_analysis.protocol_check import http_checker

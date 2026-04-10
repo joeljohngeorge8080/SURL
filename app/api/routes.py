@@ -1,4 +1,6 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, Request, UploadFile, File
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from app.api.schemas import ScanRequest, ScanResponse
 from app.services.scan_orchestrator import scan_url, run_dynamic_scan
 from static_analysis.image_url_extractor import extract_text_from_image
@@ -96,11 +98,8 @@ async def scan_image(file: UploadFile = File(...)):
             os.remove(temp_path)
 
 
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi import Request
-
 templates = Jinja2Templates(directory="app/templates")
+
 
 
 @router.get("/results", response_class=HTMLResponse)
