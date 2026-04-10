@@ -1,12 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl, field_validator
+from typing import List
 
 
 class ScanRequest(BaseModel):
     url: str
 
+    @field_validator("url")
+    @classmethod
+    def url_must_be_http(cls, v: str) -> str:
+        v = v.strip()
+        if not v.startswith(("http://", "https://")):
+            v = f"https://{v}"
+        if len(v) > 2048:
+            raise ValueError("URL exceeds maximum allowed length of 2048 characters.")
+        return v
 
-from typing import List
-from pydantic import BaseModel
 
 class DetailedAnalysis(BaseModel):
     indicator: str
