@@ -169,6 +169,106 @@ surl/
 
 ---
 
+## 🚀 Deployment (AWS EC2)
+
+This project is containerized using Docker and can be deployed on AWS EC2 with minimal setup.
+
+### Prerequisites
+
+- AWS account
+- An EC2 instance (Ubuntu recommended)
+- Docker installed on the instance
+- A domain name (optional but recommended)
+
+---
+
+### 1. Pull the Docker Image
+
+```bash
+docker pull joeljohngeorge8080/surl-api:latest
+```
+
+---
+
+### 2. Run the Container
+
+```bash
+docker run -d \
+  --name surl-api \
+  -p 80:8000 \
+  --restart always \
+  joeljohngeorge8080/surl-api:latest
+```
+
+This maps port 80 on the EC2 instance to port 8000 inside the container.
+
+---
+
+### 3. Configure Environment Variables
+
+```bash
+docker run -d \
+  --name surl-api \
+  -p 80:8000 \
+  --restart always \
+  -e DEBUG=False \
+  -e VIRUSTOTAL_API_KEY=your_key_here \
+  joeljohngeorge8080/surl-api:latest
+```
+
+---
+
+### 4. Access the Application
+
+Once the container is running, open:
+
+```
+http://<your-ec2-public-ip>
+```
+
+Or if a domain is configured:
+
+```
+http://sentinelurl.site
+```
+
+---
+
+### 5. (Optional) Domain Setup
+
+If you have a domain (e.g., from Namecheap):
+
+- Create an **A record** pointing to your EC2 public IP
+- Wait for DNS propagation
+
+---
+
+### 6. (Optional) HTTPS Setup
+
+For production use, configure HTTPS using:
+
+- NGINX + Let's Encrypt (Certbot)
+- or AWS Certificate Manager with an Application Load Balancer
+
+---
+
+### Notes
+
+- The app exposes `/health` for health checks — ALB and monitoring tools can probe this
+- View live logs with `docker logs -f surl-api`
+- Ensure the EC2 security group allows inbound traffic on ports **80** (HTTP) and **22** (SSH)
+
+---
+
+### Future Improvements
+
+- Move secrets to AWS Secrets Manager
+- Use Amazon ECR instead of Docker Hub for the image registry
+- Deploy with ECS/Fargate for auto-scaling
+- Mount a persistent volume or use S3 for screenshot storage
+
+---
+
 ## Notes
 
 - The dynamic sandbox visits real URLs with a headless browser. Always run it in an isolated network environment.
