@@ -225,20 +225,19 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
     except Exception as e:
         import traceback
-        error_trace = traceback.format_exc()
+        from app.core.logger import logger
 
-        print("=========== DYNAMIC ENGINE CRASH ===========")
-        print(error_trace)
-        print("=============================================")
+        logger.error({
+            "event": "dynamic_engine_crash",
+            "exc_type": type(e).__name__,
+            "traceback": traceback.format_exc(),
+        })
 
         results["classification"] = "Execution Error"
         results["confidence"] = "Low"
         results["correlation_signals"] = ["Correlation engine fallback triggered."]
-        results["engine_error"] = {
-            "type": type(e).__name__,
-            "message": str(e),
-            "traceback": error_trace,
-        }
+        # Do NOT surface internal error details in the external response
+        results["engine_error"] = {"type": type(e).__name__}
 
         if browser:
             try:

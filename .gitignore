@@ -119,3 +119,9 @@ dmypy.json
 
 #Pycharm IDE
 .idea
+
+# Runtime directories — contents gitignored, dirs tracked via .gitkeep
+screenshots/*
+!screenshots/.gitkeep
+logs/*
+!logs/.gitkeep

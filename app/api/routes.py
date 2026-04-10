@@ -25,13 +25,20 @@ async def scan_selected(request: ScanRequest):
 
 @router.post("/scan-dynamic")
 async def scan_dynamic(request: ScanRequest):
+    import uuid
+    from app.core.logger import logger
     try:
         return await run_dynamic_scan(request.url)
     except Exception as e:
-        import traceback
+        request_id = str(uuid.uuid4())
+        logger.error({
+            "event": "dynamic_scan_error",
+            "request_id": request_id,
+            "exc_type": type(e).__name__,
+        })
         return {
-            "error": "Internal scanning engine failure",
-            "traceback": traceback.format_exc()
+            "error": "Internal scanning engine failure.",
+            "request_id": request_id,
         }
 
 
