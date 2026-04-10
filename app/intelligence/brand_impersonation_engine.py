@@ -1,6 +1,6 @@
 # app/intelligence/brand_impersonation_engine.py
 
-from typing import Dict, List
+from typing import Dict
 from urllib.parse import urlparse
 from difflib import SequenceMatcher
 import tldextract

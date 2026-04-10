@@ -2,7 +2,6 @@
 tests/test_config.py
 Tests for the application configuration and settings layer.
 """
-import pytest
 from app.core.config import Settings
 
 

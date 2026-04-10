@@ -1,5 +1,4 @@
 import re
-from urllib.parse import urlparse
 
 
 
@@ -72,12 +71,12 @@ def analyze_javascript(
         if re.search(r'addeventlistener\s*\(\s*["\']submit', js):
             findings["credential_related"].append("form_submit_listener")
 
-        # Only credential signal if POST target appears external to the analyzed page domain.
+        # If the caller already detected external POST exfiltration, flag it.
         external_post_pattern = re.findall(
-            r'(?:fetch|axios\.post)\s*\(\s*["\'](https?://[^"\']+)["\']',
+            r"(?:fetch|axios\.post)\s*\(\s*[\"'](https?://[^\"']+)[\"']",
             js,
         )
-        if any(_is_external_url(target, original_url) for target in external_post_pattern):
+        if external_post_detected and external_post_pattern:
             findings["credential_related"].append("external_post_submission")
 
         # Only detect password-field references when the DOM actually includes password inputs.

@@ -2,7 +2,6 @@
 tests/test_dynamic_analysis.py
 Light unit tests for dynamic analysis helpers (no browser launch needed).
 """
-import pytest
 from app.dynamic_analysis.network_monitor import analyze_post_requests
 
 

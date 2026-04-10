@@ -14,8 +14,6 @@ def classify_behavior(
     suspicious_redirect = redirect_analysis.get("suspicious_redirect_detected", False)
 
     has_password = credential_analysis.get("credential_fields_detected", False)
-    external_form = credential_analysis.get("external_form_action", False)
-    ip_form = credential_analysis.get("ip_based_form_action", False)
 
     external_post = network_exfiltration.get("external_post_detected", False)
     ip_post = network_exfiltration.get("ip_post_detected", False)
