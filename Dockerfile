@@ -59,9 +59,14 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Playwright browsers as root before dropping privileges
-RUN playwright install chromium && playwright install-deps chromium
+# Set a global path for Playwright browsers so any user can access them
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
+# Install Playwright browsers and dependencies
+RUN mkdir -p /ms-playwright && \
+    playwright install chromium && \
+    playwright install-deps chromium && \
+    chmod -R 777 /ms-playwright
 # Copy application source
 COPY app/            ./app/
 COPY static_analysis/ ./static_analysis/
@@ -83,10 +88,10 @@ EXPOSE 8000
 
 # Gunicorn + UvicornWorker for production
 CMD ["gunicorn", "app.main:app", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "--workers", "2", \
-     "--bind", "0.0.0.0:8000", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
+    "-k", "uvicorn.workers.UvicornWorker", \
+    "--workers", "2", \
+    "--bind", "0.0.0.0:8000", \
+    "--timeout", "120", \
+    "--access-logfile", "-", \
+    "--error-logfile", "-", \
+    "--log-level", "info"]
