@@ -40,7 +40,10 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
     try:
         async with async_playwright() as p:
 
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+            )
 
             context = await browser.new_context(
                 java_script_enabled=True,
