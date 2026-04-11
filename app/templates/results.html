@@ -1,617 +1,631 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SURL | Scan Results</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SURL | Scan Results</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23a855f7%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%223%22 y=%2211%22 width=%2218%22 height=%2211%22 rx=%222%22 ry=%222%22></rect><path d=%22M7 11V7a5 5 0 0 1 10 0v4%22></path></svg>">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-:root{
-    --accent:#25e7a2;
-    --accent-hover:#1ecb8e;
-}
+    <style>
+        :root {
+            --accent: #25e7a2;
+            --accent-hover: #1ecb8e;
+        }
 
-body{
-    background:#000;
-    color:white;
-    font-family:'Segoe UI',sans-serif;
-    margin:0;
-    padding:0;
-}
+        body {
+            background: #000;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
 
-.site-shell{
-    min-height:100vh;
-    background:linear-gradient(rgba(0,0,0,.85), rgba(0,0,0,.95)), url("assets/img/ChatGPT\ Image\ Feb\ 18\,\ 2026\,\ 08_41_07\ PM.png");
-    background-size:cover;
-    background-position:center;
-    background-attachment:fixed;
-}
+        .site-shell {
+            min-height: 100vh;
+            background: linear-gradient(rgba(0, 0, 0, .85), rgba(0, 0, 0, .95)), url("assets/img/ChatGPT\ Image\ Feb\ 18\,\ 2026\,\ 08_41_07\ PM.png");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
 
-.section{
-    padding:120px 0 100px 0;
-    background:#0c0c0c;
-    text-align:justify;
-}
+        .section {
+            padding: 120px 0 100px 0;
+            background: #0c0c0c;
+            text-align: justify;
+        }
 
-.section h1,
-.section h2,
-.section h3,
-.section h4,
-.section h5,
-.section h6{
-    text-align:center;
-}
+        .section h1,
+        .section h2,
+        .section h3,
+        .section h4,
+        .section h5,
+        .section h6 {
+            text-align: center;
+        }
 
-.navbar{
-    background:rgba(0, 0, 0, 0.1) !important;
-    backdrop-filter:blur(15px);
-    -webkit-backdrop-filter:blur(15px);
-    border-bottom:1px solid rgba(255, 255, 255, 0.1);
-    transition:all .3s ease;
-    position:fixed;
-    width:100%;
-    top:0;
-    z-index:1000;
-    box-shadow:0 8px 32px 0 rgba(31, 38, 135, 0.1);
-}
+        .navbar {
+            background: rgba(0, 0, 0, 0.1) !important;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all .3s ease;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
 
-.navbar .nav-link{
-    color:#fff !important;
-    font-weight:500;
-    transition:.3s ease;
-}
+        .navbar .nav-link {
+            color: #fff !important;
+            font-weight: 500;
+            transition: .3s ease;
+        }
 
-.navbar .nav-link:hover,
-.nav-link.active{
-    color:var(--accent) !important;
-    text-shadow:0 0 10px rgba(37, 231, 162, 0.5);
-}
+        .navbar .nav-link:hover,
+        .nav-link.active {
+            color: var(--accent) !important;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.5);
+        }
 
-.navbar-brand{
-  color:#fff !important;
-  font-weight:700;
-  letter-spacing:1px;
-  margin-left: 289px;
-}
+        .navbar-brand {
+            color: #fff !important;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-left: 289px;
+        }
 
 
 
-.section-title{
-    text-align:center;
-    margin-bottom:70px;
-    letter-spacing:.15em;
-    text-transform:uppercase;
-    font-size:2.5rem;
-    font-weight:700;
-    color:#ffffff;
-    text-shadow:0 0 20px rgba(37,231,162,0.3);
-}
+        .section-title {
+            text-align: center;
+            margin-bottom: 70px;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(37, 231, 162, 0.3);
+        }
 
-.risk-circle{
-    width:200px;
-    height:200px;
-    border-radius:50%;
-    border:8px solid var(--accent);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:3rem;
-    font-weight:700;
-    margin:auto;
-    box-shadow:0 0 40px rgba(37,231,162,0.5);
-    color:#ffffff;
-}
+        .risk-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 8px solid var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            margin: auto;
+            box-shadow: 0 0 40px rgba(37, 231, 162, 0.5);
+            color: #ffffff;
+        }
 
-.card-custom{
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.08);
-    backdrop-filter:blur(8px);
-    border-radius:12px;
-    padding:30px;
-    margin-bottom:30px;
-    text-align:justify;
-}
+        .card-custom {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: justify;
+        }
 
-.card-custom h5{
-    color:#ffffff;
-    font-weight:700;
-    font-size:1.4rem;
-    margin-bottom:1.5rem;
-    text-shadow:0 0 10px rgba(37,231,162,0.2);
-    text-align:center;
-}
+        .card-custom h5 {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
+            text-align: center;
+        }
 
-.card-custom p{
-    color:#e8e8e8;
-    font-size:1rem;
-    text-align:justify;
-}
+        .card-custom p {
+            color: #e8e8e8;
+            font-size: 1rem;
+            text-align: justify;
+        }
 
-.table{
-    color:white;
-}
+        .table {
+            color: white;
+        }
 
-.table thead{
-    background:rgba(255,255,255,0.05);
-}
+        .table thead {
+            background: rgba(255, 255, 255, 0.05);
+        }
 
-.table-hover tbody tr:hover{
-    background:rgba(37,231,162,0.05);
-}
+        .table-hover tbody tr:hover {
+            background: rgba(37, 231, 162, 0.05);
+        }
 
-.json-box{
-    background:#000;
-    padding:25px;
-    font-family:monospace;
-    font-size:0.9rem;
-    border-radius:10px;
-    overflow:auto;
-    border:1px solid rgba(255,255,255,0.1);
-    white-space:pre;
-    line-height:1.5;
-}
+        .json-box {
+            background: #000;
+            padding: 25px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            border-radius: 10px;
+            overflow: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: pre;
+            line-height: 1.5;
+        }
 
-.btn-accent{
-    background:var(--accent);
-    border:none;
-    font-weight:600;
-    transition:.3s;
-}
+        .btn-accent {
+            background: var(--accent);
+            border: none;
+            font-weight: 600;
+            transition: .3s;
+        }
 
-.btn-accent:hover{
-    background:var(--accent-hover);
-    box-shadow:0 0 15px rgba(37,231,162,.6);
-}
+        .btn-accent:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 15px rgba(37, 231, 162, .6);
+        }
 
-.btn-outline-light{
-    border:1px solid rgba(255,255,255,0.2);
-    color:#fff;
-    font-weight:500;
-    transition:.3s;
-}
+        .btn-outline-light {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 500;
+            transition: .3s;
+        }
 
-.btn-outline-light:hover{
-    border-color:var(--accent);
-    color:var(--accent);
-    background:rgba(37,231,162,0.1);
-}
+        .btn-outline-light:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(37, 231, 162, 0.1);
+        }
 
-.detailed-explanation-item{
-    color:#ffffff;
-    padding:15px;
-    background:rgba(255,255,255,0.02);
-    border-left:3px solid var(--accent);
-    border-radius:6px;
-    margin-bottom:20px;
-}
+        .detailed-explanation-item {
+            color: #ffffff;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 3px solid var(--accent);
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
 
-.detailed-explanation-item strong{
-    color:var(--accent);
-    font-size:1.1rem;
-    display:block;
-    margin-bottom:8px;
-}
+        .detailed-explanation-item strong {
+            color: var(--accent);
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 8px;
+        }
 
-.detailed-explanation-item p{
-    color:#e8e8e8;
-    margin-bottom:8px;
-    font-size:0.95rem;
-}
+        .detailed-explanation-item p {
+            color: #e8e8e8;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
 
-.detailed-explanation-item small{
-    color:#b8b8b8;
-}
+        .detailed-explanation-item small {
+            color: #b8b8b8;
+        }
 
-h2{
-    color:#ffffff;
-    font-weight:700;
-    font-size:2.5rem;
-    text-shadow:0 0 20px rgba(37,231,162,0.3);
-    margin-bottom:2rem;
-}
+        h2 {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 2.5rem;
+            text-shadow: 0 0 20px rgba(37, 231, 162, 0.3);
+            margin-bottom: 2rem;
+        }
 
-h4{
-    color:#ffffff;
-    font-weight:600;
-    text-align:center;
-}
+        h4 {
+            color: #ffffff;
+            font-weight: 600;
+            text-align: center;
+        }
 
-h5{
-    color:#ffffff;
-    font-weight:700;
-    font-size:1.4rem;
-    margin-bottom:1.5rem;
-    text-shadow:0 0 10px rgba(37,231,162,0.2);
-    text-align:center;
-}
+        h5 {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
+            text-align: center;
+        }
 
-.card-custom p{
-    color:#e8e8e8;
-    font-size:1rem;
-}
+        .card-custom p {
+            color: #e8e8e8;
+            font-size: 1rem;
+        }
 
-.badge{
-    font-weight:600;
-}
-.text-accent{
-    color: var(--accent);
-    font-weight:600;
-}
+        .badge {
+            font-weight: 600;
+        }
 
-.analysis-item{
-    background:rgba(37, 231, 162, 0.05);
-    border-left:4px solid var(--accent);
-    padding:20px;
-    border-radius:8px;
-    margin-bottom:25px;
-    transition:.3s ease;
-    text-align:justify;
-}
+        .text-accent {
+            color: var(--accent);
+            font-weight: 600;
+        }
 
-.analysis-item:hover{
-    background:rgba(37, 231, 162, 0.08);
-    transform:translateX(5px);
-}
+        .analysis-item {
+            background: rgba(37, 231, 162, 0.05);
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            transition: .3s ease;
+            text-align: justify;
+        }
 
-.analysis-item h6{
-    color:var(--accent);
-    font-size:1.1rem;
-    font-weight:700;
-    margin-bottom:12px;
-    text-align:center;
-}
+        .analysis-item:hover {
+            background: rgba(37, 231, 162, 0.08);
+            transform: translateX(5px);
+        }
 
-.analysis-item p{
-    margin-bottom:8px;
-    line-height:1.6;
-    color:#e8e8e8;
-    text-align:justify;
-}
+        .analysis-item h6 {
+            color: var(--accent);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-align: center;
+        }
 
-.analysis-item strong{
-    color:#ffffff;
-    display:block;
-    margin-top:12px;
-    margin-bottom:5px;
-}
+        .analysis-item p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            color: #e8e8e8;
+            text-align: justify;
+        }
 
-.risk-breakdown-value{
-    color:#ffffff;
-    font-weight:700;
-    text-shadow:0 0 10px rgba(37,231,162,0.2);
-}
+        .analysis-item strong {
+            color: #ffffff;
+            display: block;
+            margin-top: 12px;
+            margin-bottom: 5px;
+        }
 
-.risk-breakdown-label{
-    color:#ffffff;
-    font-weight:600;
-}
+        .risk-breakdown-value {
+            color: #ffffff;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
+        }
 
-.safety-advisory{
-    background:rgba(255, 107, 107, 0.08);
-    border-left:4px solid #ff6b6b;
-    padding:20px;
-    border-radius:8px;
-    margin-top:20px;
-    text-align:justify;
-}
+        .risk-breakdown-label {
+            color: #ffffff;
+            font-weight: 600;
+        }
 
-.safety-advisory ul{
-    list-style:none;
-    padding:0;
-    margin:10px 0 0 0;
-}
+        .safety-advisory {
+            background: rgba(255, 107, 107, 0.08);
+            border-left: 4px solid #ff6b6b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: justify;
+        }
 
-.safety-advisory li{
-    padding:8px 0;
-    padding-left:25px;
-    position:relative;
-    color:#e8e8e8;
-    text-align:justify;
-}
+        .safety-advisory ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
 
-.safety-advisory li::before{
-    content:"✓";
-    position:absolute;
-    left:0;
-    color:#ff6b6b;
-    font-weight:700;
-}
+        .safety-advisory li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #e8e8e8;
+            text-align: justify;
+        }
 
-.score-section{
-    margin-bottom:60px;
-}
+        .safety-advisory li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #ff6b6b;
+            font-weight: 700;
+        }
 
-.indicators-section{
-    margin-bottom:60px;
-}
+        .score-section {
+            margin-bottom: 60px;
+        }
 
-.details-section{
-    margin-bottom:60px;
-}
+        .indicators-section {
+            margin-bottom: 60px;
+        }
 
-.summary-section{
-    margin-bottom:60px;
-}
+        .details-section {
+            margin-bottom: 60px;
+        }
 
-.actions-section{
-    margin-bottom:30px;
-}
+        .summary-section {
+            margin-bottom: 60px;
+        }
 
-.safety-advisory-heading{
-    color:#ffffff;
-    font-weight:700;
-    font-size:1.2rem;
-    margin-bottom:15px;
-    text-shadow:0 0 10px rgba(37,231,162,0.3);
-}
+        .actions-section {
+            margin-bottom: 30px;
+        }
 
-footer{
-    background:#000;
-    padding:30px 0;
-    text-align:center;
-    color:#777;
-    font-size:.9rem;
-}
-</style>
+        .safety-advisory-heading {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.3);
+        }
+
+        footer {
+            background: #000;
+            padding: 30px 0;
+            text-align: center;
+            color: #777;
+            font-size: .9rem;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="site-shell">
+    <div class="site-shell">
 
-<nav class="navbar navbar-expand-lg">
-<div class="container-fluid d-flex justify-content-between align-items-center">
-<a class="navbar-brand" href="/">SURL</a>
-<div class="d-flex align-items-center gap-3">
-<button class="btn btn-sm btn-link text-white text-decoration-none" onclick="scrollToSection('detailedAnalysisSection')" style="font-weight:500; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'">
-<i class="fa-solid fa-book me-2"></i>Detailed Technical Analysis
-</button>
-<button class="btn btn-sm btn-link text-white text-decoration-none" onclick="scrollToSection('actionsSection')" style="font-weight:500; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'">
-<i class="fa-solid fa-download me-2"></i>Download
-</button>
-<button class="btn btn-sm" id="navFlaskBtn" style="background:transparent; border:none; color:#fff; font-size:1.2rem; cursor:pointer; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'" title="Run Dynamic Analysis">
-<i class="fa-solid fa-flask"></i>
-</button>
-</div>
-</div>
-</nav>
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid d-flex justify-content-between align-items-center">
+                <a class="navbar-brand" href="/">SURL</a>
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-sm btn-link text-white text-decoration-none"
+                        onclick="scrollToSection('detailedAnalysisSection')"
+                        style="font-weight:500; transition:.3s ease;" onmouseover="this.style.color='var(--accent)'"
+                        onmouseout="this.style.color='white'">
+                        <i class="fa-solid fa-book me-2"></i>Detailed Technical Analysis
+                    </button>
+                    <button class="btn btn-sm btn-link text-white text-decoration-none"
+                        onclick="scrollToSection('actionsSection')" style="font-weight:500; transition:.3s ease;"
+                        onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'">
+                        <i class="fa-solid fa-download me-2"></i>Download
+                    </button>
+                    <button class="btn btn-sm" id="navFlaskBtn"
+                        style="background:transparent; border:none; color:#fff; font-size:1.2rem; cursor:pointer; transition:.3s ease;"
+                        onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='white'"
+                        title="Run Dynamic Analysis">
+                        <i class="fa-solid fa-flask"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
 
-<section class="section text-center">
-<div class="container">
+        <section class="section text-center">
+            <div class="container">
 
-<h2 class="section-title">Threat Intelligence Report</h2>
+                <h2 class="section-title">Threat Intelligence Report</h2>
 
-<!-- SCORE -->
-<div class="score-section">
-<div class="row align-items-center justify-content-center">
-<div class="col-md-4 text-center">
-<div class="risk-circle" id="riskScore">0</div>
-<p class="mt-3">Risk Score</p>
-</div>
+                <!-- SCORE -->
+                <div class="score-section">
+                    <div class="row align-items-center justify-content-center">
+                        <div class="col-md-4 text-center">
+                            <div class="risk-circle" id="riskScore">0</div>
+                            <p class="mt-3">Risk Score</p>
+                        </div>
 
-<div class="col-md-4 text-center">
-<h4>Severity Level</h4>
-<span class="badge fs-5 px-4 py-2" id="severityBadge">LOW</span>
-</div>
-</div>
-</div>
+                        <div class="col-md-4 text-center">
+                            <h4>Severity Level</h4>
+                            <span class="badge fs-5 px-4 py-2" id="severityBadge">LOW</span>
+                        </div>
+                    </div>
+                </div>
 
-<!-- RISK BREAKDOWN -->
-<div class="card card-custom text-center mt-4">
-<h5 class="mb-4">Risk Breakdown</h5>
+                <!-- RISK BREAKDOWN -->
+                <div class="card card-custom text-center mt-4">
+                    <h5 class="mb-4">Risk Breakdown</h5>
 
-<div class="row">
-<div class="col-md-4">
-<h6 class="risk-breakdown-label">Transport Risk</h6>
-<p id="transportRisk" class="fs-4 risk-breakdown-value">0</p>
-</div>
-<div class="col-md-4">
-<h6 class="risk-breakdown-label">Phishing Risk</h6>
-<p id="phishingRisk" class="fs-4 risk-breakdown-value">0</p>
-</div>
-<div class="col-md-4">
-<h6 class="risk-breakdown-label">Confidence Score</h6>
-<p id="confidenceScore" class="fs-4 risk-breakdown-value">0%</p>
-</div>
-</div>
-</div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="risk-breakdown-label">Transport Risk</h6>
+                            <p id="transportRisk" class="fs-4 risk-breakdown-value">0</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="risk-breakdown-label">Phishing Risk</h6>
+                            <p id="phishingRisk" class="fs-4 risk-breakdown-value">0</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="risk-breakdown-label">Confidence Score</h6>
+                            <p id="confidenceScore" class="fs-4 risk-breakdown-value">0%</p>
+                        </div>
+                    </div>
+                </div>
 
-<!-- THREAT RADAR -->
-<div class="card card-custom text-center mt-4">
-<h5 class="mb-4">Threat Radar Visualization</h5>
-<canvas id="riskRadar" height="100"></canvas>
-</div>
+                <!-- THREAT RADAR -->
+                <div class="card card-custom text-center mt-4">
+                    <h5 class="mb-4">Threat Radar Visualization</h5>
+                    <canvas id="riskRadar" height="100"></canvas>
+                </div>
 
-<!-- INPUT URL -->
-<div class="card card-custom mb-5">
-<h5>Analyzed URL</h5>
-<p id="urlValue" class="text-break mb-0" style="text-align:center; word-wrap:break-word; color:var(--accent);"></p>
-</div>
+                <!-- INPUT URL -->
+                <div class="card card-custom mb-5">
+                    <h5>Analyzed URL</h5>
+                    <p id="urlValue" class="text-break mb-0"
+                        style="text-align:center; word-wrap:break-word; color:var(--accent);"></p>
+                </div>
 
-<!-- PBH -->
-<div class="card card-custom mb-5">
-<h5>Behavioral Fingerprint (PBH)</h5>
-<p id="pbhValue" class="text-break mb-0" style="text-align:center;"></p>
-</div>
+                <!-- PBH -->
+                <div class="card card-custom mb-5">
+                    <h5>Behavioral Fingerprint (PBH)</h5>
+                    <p id="pbhValue" class="text-break mb-0" style="text-align:center;"></p>
+                </div>
 
-<!-- INDICATORS -->
-<div class="card card-custom indicators-section">
-<h5 class="mb-4">Detected Indicators</h5>
+                <!-- INDICATORS -->
+                <div class="card card-custom indicators-section">
+                    <h5 class="mb-4">Detected Indicators</h5>
 
-<div class="table-responsive">
-<table class="table table-dark table-hover align-middle">
-<thead>
-<tr>
-<th>#</th>
-<th>Indicator</th>
-<th>Impact</th>
-<th>Recommendation</th>
-</tr>
-</thead>
-<tbody id="indicatorTable">
-</tbody>
-</table>
-</div>
-</div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Indicator</th>
+                                    <th>Impact</th>
+                                    <th>Recommendation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="indicatorTable">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
 
-<!-- DETAILED EXPLANATION -->
-<div class="card card-custom p-4 mb-5 details-section" id="detailedAnalysisSection">
-<h5 class="mb-4">Detailed Technical Analysis</h5>
-<div id="detailedExplanationContainer"></div>
-<hr class="my-4">
-<h6 class="mt-4 mb-3 safety-advisory-heading">User Safety Advisory</h6>
-<div id="userSafetySection" class="safety-advisory"></div>
-</div>
+                <!-- DETAILED EXPLANATION -->
+                <div class="card card-custom p-4 mb-5 details-section" id="detailedAnalysisSection">
+                    <h5 class="mb-4">Detailed Technical Analysis</h5>
+                    <div id="detailedExplanationContainer"></div>
+                    <hr class="my-4">
+                    <h6 class="mt-4 mb-3 safety-advisory-heading">User Safety Advisory</h6>
+                    <div id="userSafetySection" class="safety-advisory"></div>
+                </div>
 
-<div class="card card-custom mb-5 summary-section">
-<h5>Executive Summary</h5>
-<p id="executiveSummary" style="line-height:1.8; color:#e8e8e8;"></p>
-</div>
+                <div class="card card-custom mb-5 summary-section">
+                    <h5>Executive Summary</h5>
+                    <p id="executiveSummary" style="line-height:1.8; color:#e8e8e8;"></p>
+                </div>
 
 
-<!-- ACTIONS -->
-<div class="card card-custom text-center actions-section" id="actionsSection">
+                <!-- ACTIONS -->
+                <div class="card card-custom text-center actions-section" id="actionsSection">
 
-<div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
 
-<button class="btn btn-accent" onclick="downloadReport()">
-<i class="fa-solid fa-download me-2"></i>
-Download Static Report
-</button>
+                        <button class="btn btn-accent" onclick="downloadReport()">
+                            <i class="fa-solid fa-download me-2"></i>
+                            Download Static Report
+                        </button>
 
-<button class="btn btn-outline-light" id="runDynamicBtn">
-<i class="fa-solid fa-flask me-2"></i>
-Run Dynamic Analysis
-</button>
+                        <button class="btn btn-outline-light" id="runDynamicBtn">
+                            <i class="fa-solid fa-flask me-2"></i>
+                            Run Dynamic Analysis
+                        </button>
 
-<button class="btn btn-outline-light" onclick="toggleJson()">
-<i class="fa-solid fa-code me-2"></i>
-View Raw JSON
-</button>
+                        <button class="btn btn-outline-light" onclick="toggleJson()">
+                            <i class="fa-solid fa-code me-2"></i>
+                            View Raw JSON
+                        </button>
 
-</div>
+                    </div>
 
-<pre id="jsonContainer" class="json-box mt-4 d-none">
+                    <pre id="jsonContainer" class="json-box mt-4 d-none">
 <code id="jsonOutput"></code>
 </pre>
 
-</div>
+                </div>
 
-</div>
-</section>
+            </div>
+        </section>
 
-<footer>
-<div class="container">
-<p>&copy; 2026 SURL - Advanced URL Threat Intelligence Engine</p>
-</div>
-</footer>
+        <footer>
+            <div class="container">
+                <p>&copy; 2026 SURL - Advanced URL Threat Intelligence Engine</p>
+            </div>
+        </footer>
 
-</div>
-<script>
+    </div>
+    <script>
 
-const result = JSON.parse(localStorage.getItem("scanResult"));
+        const result = JSON.parse(localStorage.getItem("scanResult"));
 
-if(result){
+        if (result) {
 
-    // Risk Score
-    document.getElementById("riskScore").textContent = result.risk_score || 0;
+            // Risk Score
+            document.getElementById("riskScore").textContent = result.risk_score || 0;
 
-    // Risk Breakdown
-    document.getElementById("transportRisk").textContent = result.transport_risk || 0;
-    document.getElementById("phishingRisk").textContent = result.phishing_risk || 0;
-    document.getElementById("confidenceScore").textContent = (result.confidence_score || 0) + "%";
+            // Risk Breakdown
+            document.getElementById("transportRisk").textContent = result.transport_risk || 0;
+            document.getElementById("phishingRisk").textContent = result.phishing_risk || 0;
+            document.getElementById("confidenceScore").textContent = (result.confidence_score || 0) + "%";
 
-    // Severity Badge
-    const badge = document.getElementById("severityBadge");
-    badge.textContent = (result.severity || "Low").toUpperCase();
+            // Severity Badge
+            const badge = document.getElementById("severityBadge");
+            badge.textContent = (result.severity || "Low").toUpperCase();
 
-    if(result.severity === "Low"){
-        badge.className = "badge bg-success fs-5 px-4 py-2";
-    }
-    else if(result.severity === "Medium"){
-        badge.className = "badge bg-warning fs-5 px-4 py-2";
-    }
-    else if(result.severity === "Medium-High"){
-        badge.className = "badge bg-warning fs-5 px-4 py-2";
-    }
-    else{
-        badge.className = "badge bg-danger fs-5 px-4 py-2";
-    }
-
-    // PBH
-    document.getElementById("pbhValue").textContent =
-        result.pbh_fingerprint || "N/A";
-
-    // URL
-    document.getElementById("urlValue").textContent =
-        result.url || "N/A";
-
-    // Radar Chart
-    const ctx = document.getElementById('riskRadar');
-
-    new Chart(ctx, {
-        type: 'radar',
-        data: {
-            labels: ['Transport Risk', 'Phishing Risk', 'Overall Risk', 'Confidence'],
-            datasets: [{
-                label: 'Threat Profile',
-                data: [
-                    result.transport_risk || 0,
-                    result.phishing_risk || 0,
-                    result.risk_score || 0,
-                    result.confidence_score || 0
-                ],
-                backgroundColor: 'rgba(37, 231, 162, 0.2)',
-                borderColor: 'rgba(37, 231, 162, 1)',
-                borderWidth: 2,
-                pointBackgroundColor: '#25e7a2'
-            }]
-        },
-        options: {
-            scales: {
-                r: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        display: false
-                    },
-                    grid: {
-                        color: 'rgba(255,255,255,0.1)'
-                    },
-                    pointLabels: {
-                        color: 'white'
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    labels: {
-                        color: 'white'
-                    }
-                }
+            if (result.severity === "Low") {
+                badge.className = "badge bg-success fs-5 px-4 py-2";
             }
-        }
-    });
+            else if (result.severity === "Medium") {
+                badge.className = "badge bg-warning fs-5 px-4 py-2";
+            }
+            else if (result.severity === "Medium-High") {
+                badge.className = "badge bg-warning fs-5 px-4 py-2";
+            }
+            else {
+                badge.className = "badge bg-danger fs-5 px-4 py-2";
+            }
 
-    // Executive Summary
-    const summarySection = document.getElementById("executiveSummary");
-    if(summarySection && result.executive_summary){
-        summarySection.textContent = result.executive_summary;
-    }
+            // PBH
+            document.getElementById("pbhValue").textContent =
+                result.pbh_fingerprint || "N/A";
 
-    // Detailed Indicators Table
-    const table = document.getElementById("indicatorTable");
-    table.innerHTML = "";
+            // URL
+            document.getElementById("urlValue").textContent =
+                result.url || "N/A";
 
-    (result.detailed_analysis || []).forEach((item, index) => {
-        table.innerHTML += `
+            // Radar Chart
+            const ctx = document.getElementById('riskRadar');
+
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Transport Risk', 'Phishing Risk', 'Overall Risk', 'Confidence'],
+                    datasets: [{
+                        label: 'Threat Profile',
+                        data: [
+                            result.transport_risk || 0,
+                            result.phishing_risk || 0,
+                            result.risk_score || 0,
+                            result.confidence_score || 0
+                        ],
+                        backgroundColor: 'rgba(37, 231, 162, 0.2)',
+                        borderColor: 'rgba(37, 231, 162, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#25e7a2'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                display: false
+                            },
+                            grid: {
+                                color: 'rgba(255,255,255,0.1)'
+                            },
+                            pointLabels: {
+                                color: 'white'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Executive Summary
+            const summarySection = document.getElementById("executiveSummary");
+            if (summarySection && result.executive_summary) {
+                summarySection.textContent = result.executive_summary;
+            }
+
+            // Detailed Indicators Table
+            const table = document.getElementById("indicatorTable");
+            table.innerHTML = "";
+
+            (result.detailed_analysis || []).forEach((item, index) => {
+                table.innerHTML += `
             <tr>
                 <td>${index + 1}</td>
                 <td>${item.indicator || "-"}</td>
@@ -619,21 +633,21 @@ if(result){
                 <td>${item.remediation_strategy || "-"}</td>
             </tr>
         `;
-    });
+            });
 
-    // Pretty JSON
-    const jsonElement = document.getElementById("jsonOutput");
-    if(jsonElement){
-        jsonElement.textContent = JSON.stringify(result, null, 4);
-        hljs.highlightAll();
-    }
+            // Pretty JSON
+            const jsonElement = document.getElementById("jsonOutput");
+            if (jsonElement) {
+                jsonElement.textContent = JSON.stringify(result, null, 4);
+                hljs.highlightAll();
+            }
 
-    // Detailed Technical Analysis
-    const detailedContainer = document.getElementById("detailedExplanationContainer");
-    if(detailedContainer){
-        detailedContainer.innerHTML = "";
-        (result.detailed_analysis || []).forEach((item, index) => {
-            detailedContainer.innerHTML += `
+            // Detailed Technical Analysis
+            const detailedContainer = document.getElementById("detailedExplanationContainer");
+            if (detailedContainer) {
+                detailedContainer.innerHTML = "";
+                (result.detailed_analysis || []).forEach((item, index) => {
+                    detailedContainer.innerHTML += `
                 <div class="analysis-item">
                     <h6>${index + 1}. ${item.indicator}</h6>
                     <strong>Technical Explanation:</strong>
@@ -644,15 +658,15 @@ if(result){
                     <p>${item.verification_strategy}</p>
                 </div>
             `;
-        });
-    }
+                });
+            }
 
-    // User Safety Guidance
-    const safetyContainer = document.getElementById("userSafetySection");
-    if(safetyContainer){
-        safetyContainer.innerHTML = "";
-        if(result.severity === "High"){
-            safetyContainer.innerHTML = `
+            // User Safety Guidance
+            const safetyContainer = document.getElementById("userSafetySection");
+            if (safetyContainer) {
+                safetyContainer.innerHTML = "";
+                if (result.severity === "High") {
+                    safetyContainer.innerHTML = `
                 <p>
                 This website demonstrates multiple high-risk security indicators. 
                 It is strongly advised not to enter any personal credentials, financial 
@@ -665,9 +679,9 @@ if(result){
                     <li>Clear browser cache and monitor accounts if interaction already occurred.</li>
                 </ul>
             `;
-        }
-        else if(result.severity === "Medium"){
-            safetyContainer.innerHTML = `
+                }
+                else if (result.severity === "Medium") {
+                    safetyContainer.innerHTML = `
                 <p>
                 This website shows moderate risk indicators. While it may not be actively malicious, 
                 caution is advised before interacting with sensitive inputs.
@@ -678,106 +692,108 @@ if(result){
                     <li>Avoid sharing confidential credentials unless ownership is confirmed.</li>
                 </ul>
             `;
-        }
-    }
-}
-
-const runDynamicBtn = document.getElementById("runDynamicBtn");
-if (runDynamicBtn) {
-    runDynamicBtn.addEventListener("click", async () => {
-        if (runDynamicBtn.dataset.loading === "true") {
-            return;
-        }
-
-        const navFlaskBtn = document.getElementById("navFlaskBtn");
-        const setButtonLoading = (btn, loadingHtml) => {
-            if (!btn) return;
-            if (!btn.dataset.originalHtml) {
-                btn.dataset.originalHtml = btn.innerHTML;
+                }
             }
-            btn.dataset.loading = "true";
-            btn.innerHTML = loadingHtml;
-            btn.disabled = true;
-            btn.classList.add("disabled");
-        };
+        }
 
-        setButtonLoading(
-            runDynamicBtn,
-            "<span class='spinner-border spinner-border-sm me-2' role='status' aria-hidden='true'></span>Loading..."
-        );
-        setButtonLoading(
-            navFlaskBtn,
-            "<span class='spinner-border spinner-border-sm' role='status' aria-hidden='true'></span>"
-        );
+        const runDynamicBtn = document.getElementById("runDynamicBtn");
+        if (runDynamicBtn) {
+            runDynamicBtn.addEventListener("click", async () => {
+                if (runDynamicBtn.dataset.loading === "true") {
+                    return;
+                }
 
-        const result = JSON.parse(localStorage.getItem("scanResult"));
-        const url = result.url;
+                const navFlaskBtn = document.getElementById("navFlaskBtn");
+                const setButtonLoading = (btn, loadingHtml) => {
+                    if (!btn) return;
+                    if (!btn.dataset.originalHtml) {
+                        btn.dataset.originalHtml = btn.innerHTML;
+                    }
+                    btn.dataset.loading = "true";
+                    btn.innerHTML = loadingHtml;
+                    btn.disabled = true;
+                    btn.classList.add("disabled");
+                };
 
-        const response = await fetch("/scan-dynamic", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url })
+                setButtonLoading(
+                    runDynamicBtn,
+                    "<span class='spinner-border spinner-border-sm me-2' role='status' aria-hidden='true'></span>Loading..."
+                );
+                setButtonLoading(
+                    navFlaskBtn,
+                    "<span class='spinner-border spinner-border-sm' role='status' aria-hidden='true'></span>"
+                );
+
+                const result = JSON.parse(localStorage.getItem("scanResult"));
+                const url = result.url;
+
+                const response = await fetch("/scan-dynamic", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                localStorage.setItem("dynamicResult", JSON.stringify(data));
+
+                window.location.href = "/dynamic-results";
+            });
+        }
+
+        /* Toggle JSON */
+        function toggleJson() {
+            const jsonBox = document.querySelector(".json-box");
+            jsonBox.classList.toggle("d-none");
+        }
+
+        /* Download */
+        function downloadReport() {
+            const dataStr = JSON.stringify(result, null, 4);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "SURL_Static_Report.json";
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        /* Scroll to Section */
+        function scrollToSection(sectionId) {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                const navbarHeight = document.querySelector('.navbar').offsetHeight;
+                const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+                const offsetPosition = elementPosition - navbarHeight - 30; // 30px extra padding above the heading
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        /* Flask Button Functionality */
+        document.addEventListener('DOMContentLoaded', function () {
+            const navFlaskBtn = document.getElementById('navFlaskBtn');
+            const runDynamicBtn = document.getElementById('runDynamicBtn');
+
+            if (navFlaskBtn && runDynamicBtn) {
+                navFlaskBtn.addEventListener('click', function () {
+                    runDynamicBtn.click();
+                });
+            }
         });
 
-        const data = await response.json();
-
-        localStorage.setItem("dynamicResult", JSON.stringify(data));
-
-        window.location.href = "/dynamic-results";
-    });
-}
-
-/* Toggle JSON */
-function toggleJson(){
-    const jsonBox = document.querySelector(".json-box");
-    jsonBox.classList.toggle("d-none");
-}
-
-/* Download */
-function downloadReport(){
-    const dataStr = JSON.stringify(result, null, 4);
-    const blob = new Blob([dataStr], {type:"application/json"});
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "SURL_Static_Report.json";
-    a.click();
-
-    URL.revokeObjectURL(url);
-}
-
-/* Scroll to Section */
-function scrollToSection(sectionId){
-    const element = document.getElementById(sectionId);
-    if(element){
-        const navbarHeight = document.querySelector('.navbar').offsetHeight;
-        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-        const offsetPosition = elementPosition - navbarHeight - 30; // 30px extra padding above the heading
-        
-        window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-        });
-    }
-}
-
-/* Flask Button Functionality */
-document.addEventListener('DOMContentLoaded', function(){
-    const navFlaskBtn = document.getElementById('navFlaskBtn');
-    const runDynamicBtn = document.getElementById('runDynamicBtn');
-    
-    if(navFlaskBtn && runDynamicBtn){
-        navFlaskBtn.addEventListener('click', function(){
-            runDynamicBtn.click();
-        });
-    }
-});
-
-</script>
+    </script>
 </body>
+
 </html>
 
 
 </body>
+
 </html>

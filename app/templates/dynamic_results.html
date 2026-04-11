@@ -1,861 +1,870 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SURL | Dynamic Analysis Results</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SURL | Dynamic Analysis Results</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23a855f7%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%223%22 y=%2211%22 width=%2218%22 height=%2211%22 rx=%222%22 ry=%222%22></rect><path d=%22M7 11V7a5 5 0 0 1 10 0v4%22></path></svg>">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
-<style>
-:root {
-    --accent: #25e7a2;
-    --accent-hover: #1ecb8e;
-}
+    <style>
+        :root {
+            --accent: #25e7a2;
+            --accent-hover: #1ecb8e;
+        }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body {
-    background: #000;
-    color: white;
-    font-family: 'Segoe UI', sans-serif;
-}
+        body {
+            background: #000;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
 
-.site-shell {
-    min-height: 100vh;
-    background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.95)), url("assets/img/ChatGPT%20Image%20Feb%2018%2C%202026%2C%2008_41_07%20PM.png");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-}
+        .site-shell {
+            min-height: 100vh;
+            background: linear-gradient(rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.95)), url("assets/img/ChatGPT%20Image%20Feb%2018%2C%202026%2C%2008_41_07%20PM.png");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
 
-.navbar {
-    background: rgba(0, 0, 0, 0.1) !important;
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-    position: fixed;
-    width: 100%;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-}
+        .navbar {
+            background: rgba(0, 0, 0, 0.1) !important;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
 
-.navbar .nav-link {
-    color: #fff !important;
-    font-weight: 500;
-    transition: 0.3s ease;
-}
+        .navbar .nav-link {
+            color: #fff !important;
+            font-weight: 500;
+            transition: 0.3s ease;
+        }
 
-.navbar .nav-link:hover,
-.nav-link.active {
-    color: var(--accent) !important;
-    text-shadow: 0 0 10px rgba(37, 231, 162, 0.5);
-}
+        .navbar .nav-link:hover,
+        .nav-link.active {
+            color: var(--accent) !important;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.5);
+        }
 
-.navbar-brand {
-    color: #fff !important;
-    font-weight: 700;
-    letter-spacing: 1px;
-    margin-left: 289px;
-}
+        .navbar-brand {
+            color: #fff !important;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-left: 289px;
+        }
 
-.section {
-    padding: 120px 0 100px 0;
-    background: #0c0c0c;
-}
+        .section {
+            padding: 120px 0 100px 0;
+            background: #0c0c0c;
+        }
 
-.section-title {
-    text-align: center;
-    margin-bottom: 70px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 0 20px rgba(37, 231, 162, 0.3);
-}
+        .section-title {
+            text-align: center;
+            margin-bottom: 70px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(37, 231, 162, 0.3);
+        }
 
-.card-custom {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(8px);
-    border-radius: 12px;
-    padding: 30px;
-    margin-bottom: 30px;
-    transition: 0.3s ease;
-}
+        .card-custom {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: 0.3s ease;
+        }
 
-.card-custom:hover {
-    border: 1px solid rgba(37, 231, 162, 0.2);
-    box-shadow: 0 0 20px rgba(37, 231, 162, 0.1);
-}
+        .card-custom:hover {
+            border: 1px solid rgba(37, 231, 162, 0.2);
+            box-shadow: 0 0 20px rgba(37, 231, 162, 0.1);
+        }
 
-.card-custom h5 {
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 1.4rem;
-    margin-bottom: 1.5rem;
-    text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
-    text-align: center;
-}
+        .card-custom h5 {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
+            text-align: center;
+        }
 
-.card-custom h6 {
-    color: #ffffff;
-    font-weight: 600;
-    margin-bottom: 1rem;
-}
+        .card-custom h6 {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
 
-.card-custom p {
-    color: #e8e8e8;
-    font-size: 1rem;
-    line-height: 1.6;
-}
+        .card-custom p {
+            color: #e8e8e8;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
 
-/* Table Styling */
-.table {
-    color: white;
-    margin-top: 1.5rem;
-}
+        /* Table Styling */
+        .table {
+            color: white;
+            margin-top: 1.5rem;
+        }
 
-.table thead {
-    background: rgba(255, 255, 255, 0.05);
-}
+        .table thead {
+            background: rgba(255, 255, 255, 0.05);
+        }
 
-.table thead th {
-    color: var(--accent);
-    font-weight: 600;
-    border-bottom: 2px solid rgba(37, 231, 162, 0.3);
-    text-align: center;
-}
+        .table thead th {
+            color: var(--accent);
+            font-weight: 600;
+            border-bottom: 2px solid rgba(37, 231, 162, 0.3);
+            text-align: center;
+        }
 
-.table tbody td {
-    border-color: rgba(255, 255, 255, 0.08);
-    vertical-align: middle;
-    text-align: center;
-}
+        .table tbody td {
+            border-color: rgba(255, 255, 255, 0.08);
+            vertical-align: middle;
+            text-align: center;
+        }
 
-.table tbody tr:hover {
-    background: rgba(37, 231, 162, 0.05);
-}
+        .table tbody tr:hover {
+            background: rgba(37, 231, 162, 0.05);
+        }
 
-.indicator-value {
-    font-weight: 600;
-    color: var(--accent);
-}
+        .indicator-value {
+            font-weight: 600;
+            color: var(--accent);
+        }
 
-.indicator-value.yes {
-    color: #dc3545;
-}
+        .indicator-value.yes {
+            color: #dc3545;
+        }
 
-.indicator-value.no {
-    color: #28a745;
-}
+        .indicator-value.no {
+            color: #28a745;
+        }
 
-/* Screenshot Section */
-.screenshot-container {
-    text-align: center;
-    padding: 40px 0;
-}
+        /* Screenshot Section */
+        .screenshot-container {
+            text-align: center;
+            padding: 40px 0;
+        }
 
-.screenshot-image {
-    max-width: 100%;
-    height: auto;
-    border-radius: 12px;
-    border: 2px solid rgba(37, 231, 162, 0.3);
-    box-shadow: 0 0 40px rgba(37, 231, 162, 0.2), 0 8px 32px 0 rgba(31, 38, 135, 0.2);
-    transition: all 0.3s ease;
-}
+        .screenshot-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            border: 2px solid rgba(37, 231, 162, 0.3);
+            box-shadow: 0 0 40px rgba(37, 231, 162, 0.2), 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            transition: all 0.3s ease;
+        }
 
-.screenshot-image:hover {
-    border-color: rgba(37, 231, 162, 0.6);
-    box-shadow: 0 0 60px rgba(37, 231, 162, 0.4), 0 8px 32px 0 rgba(31, 38, 135, 0.3);
-}
+        .screenshot-image:hover {
+            border-color: rgba(37, 231, 162, 0.6);
+            box-shadow: 0 0 60px rgba(37, 231, 162, 0.4), 0 8px 32px 0 rgba(31, 38, 135, 0.3);
+        }
 
-.no-screenshot {
-    color: #ffffff;
-    font-style: italic;
-    padding: 40px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 2px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
-}
+        .no-screenshot {
+            color: #ffffff;
+            font-style: italic;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-shadow: 0 0 10px rgba(37, 231, 162, 0.2);
+        }
 
-/* Findings Section */
-/* Button Styling */
-.btn-accent {
-    background: var(--accent);
-    border: none;
-    color: #000;
-    font-weight: 600;
-    transition: 0.3s;
-}
+        /* Findings Section */
+        /* Button Styling */
+        .btn-accent {
+            background: var(--accent);
+            border: none;
+            color: #000;
+            font-weight: 600;
+            transition: 0.3s;
+        }
 
-.btn-accent:hover {
-    background: var(--accent-hover);
-    box-shadow: 0 0 15px rgba(37, 231, 162, 0.6);
-    color: #000;
-}
+        .btn-accent:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 15px rgba(37, 231, 162, 0.6);
+            color: #000;
+        }
 
-.btn-outline-light {
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
-    font-weight: 500;
-    transition: 0.3s;
-}
+        .btn-outline-light {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 500;
+            transition: 0.3s;
+        }
 
-.btn-outline-light:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(37, 231, 162, 0.1);
-}
+        .btn-outline-light:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(37, 231, 162, 0.1);
+        }
 
-.actions-section {
-    text-align: center;
-    margin-top: 50px;
-}
+        .actions-section {
+            text-align: center;
+            margin-top: 50px;
+        }
 
-.actions-section .d-flex {
-    gap: 15px;
-}
+        .actions-section .d-flex {
+            gap: 15px;
+        }
 
-/* URL Display */
-.url-display {
-    background: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    word-break: break-all;
-    font-size: 0.95rem;
-    color: var(--accent);
-    font-family: 'Courier New', monospace;
-}
+        /* URL Display */
+        .url-display {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            word-break: break-all;
+            font-size: 0.95rem;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+        }
 
-/* Header Section */
-.header-content {
-    text-align: center;
-    margin-bottom: 50px;
-}
+        /* Header Section */
+        .header-content {
+            text-align: center;
+            margin-bottom: 50px;
+        }
 
-.header-content h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    text-shadow: 0 0 20px rgba(37, 231, 162, 0.3);
-}
+        .header-content h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(37, 231, 162, 0.3);
+        }
 
-.header-content p {
-    color: #888;
-    font-size: 1rem;
-    margin-bottom: 10px;
-}
+        .header-content p {
+            color: #888;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
 
-/* Classification */
-.classification-box {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-}
+        /* Classification */
+        .classification-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
 
-.confidence-badge {
-    padding: 6px 16px;
-    border-radius: 999px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.85rem;
-}
+        .confidence-badge {
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.85rem;
+        }
 
-.confidence-high {
-    background: rgba(40, 167, 69, 0.2);
-    color: #28a745;
-    border: 1px solid rgba(40, 167, 69, 0.4);
-}
+        .confidence-high {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.4);
+        }
 
-.confidence-medium {
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    border: 1px solid rgba(255, 193, 7, 0.4);
-}
+        .confidence-medium {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.4);
+        }
 
-.confidence-low {
-    background: rgba(220, 53, 69, 0.2);
-    color: #dc3545;
-    border: 1px solid rgba(220, 53, 69, 0.4);
-}
+        .confidence-low {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.4);
+        }
 
-.mono-list {
-    font-family: 'Courier New', monospace;
-    color: #e8e8e8;
-    font-size: 0.95rem;
-}
+        .mono-list {
+            font-family: 'Courier New', monospace;
+            color: #e8e8e8;
+            font-size: 0.95rem;
+        }
 
-.post-targets-container {
-    max-width: 100%;
-    overflow-x: hidden;
-    max-height: 250px;
-    overflow-y: auto;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 12px 16px;
-}
+        .post-targets-container {
+            max-width: 100%;
+            overflow-x: hidden;
+            max-height: 250px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px 16px;
+        }
 
-.post-targets-container code {
-    display: block;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    word-break: break-all;
-}
+        .post-targets-container code {
+            display: block;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-all;
+        }
 
-.code-block {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 12px;
-    overflow-x: auto;
-}
+        .code-block {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-x: auto;
+        }
 
-/* Footer */
-footer {
-    background: rgba(0, 0, 0, 0.5);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 30px 0;
-    text-align: center;
-    color: #888;
-    margin-top: 50px;
-}
+        /* Footer */
+        footer {
+            background: rgba(0, 0, 0, 0.5);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px 0;
+            text-align: center;
+            color: #888;
+            margin-top: 50px;
+        }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .navbar-brand {
-        margin-left: 0;
-    }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                margin-left: 0;
+            }
 
-    .section-title {
-        font-size: 1.8rem;
-    }
+            .section-title {
+                font-size: 1.8rem;
+            }
 
-    .actions-section .d-flex {
-        flex-direction: column;
-    }
+            .actions-section .d-flex {
+                flex-direction: column;
+            }
 
-}
-</style>
+        }
+    </style>
 
 </head>
+
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">
-             SURL
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Home</a>
-                </li>
-            </ul>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                SURL
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                </ul>
+            </div>
         </div>
+    </nav>
+
+    <div class="site-shell">
+        <section class="section">
+
+            <div class="container">
+
+                <!-- HEADER -->
+                <div class="header-content card-custom">
+                    <h1>
+                        <i class="fa-solid fa-flask me-2"></i>
+                        Dynamic Threat Intelligence Report
+                    </h1>
+                    <p class="mb-3">Real-time behavioral analysis of URL execution in sandbox environment</p>
+
+                    <hr style="border-color: rgba(255, 255, 255, 0.1);">
+
+                    <h6 style="color: #888; margin-top: 20px; margin-bottom: 10px;">Analyzed URL</h6>
+                    <div class="url-display" id="urlDisplay">
+                        Loading...
+                    </div>
+
+                </div>
+
+                <!-- CLASSIFICATION -->
+                <div class="card-custom">
+                    <h5>Dynamic Behavioral Classification</h5>
+                    <div class="classification-box">
+                        <div class="fs-4 fw-bold" id="classificationValue">Loading...</div>
+                        <div id="confidenceBadge" class="confidence-badge">Confidence: --</div>
+                    </div>
+                    <div id="reasoningSection" class="mt-4"></div>
+                </div>
+
+                <!-- REDIRECT INTELLIGENCE -->
+                <div class="card-custom">
+                    <h5>Redirect Intelligence</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Redirect Count:</strong> <span id="redirectCount"
+                                    class="indicator-value">--</span></p>
+                            <p><strong>Root Domains:</strong></p>
+                            <ul id="rootDomains" class="mono-list"></ul>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Cross Root Detected:</strong> <span id="crossRootDetected"
+                                    class="indicator-value">--</span></p>
+                            <p><strong>Suspicious Redirect Chain:</strong> <span id="suspiciousRedirect"
+                                    class="indicator-value">--</span></p>
+                        </div>
+                    </div>
+                    <hr style="border-color: rgba(255, 255, 255, 0.1);">
+                    <p><strong>Redirect Chain:</strong></p>
+                    <ul id="redirectChain" class="mono-list"></ul>
+                </div>
+
+                <!-- KEYWORD INTELLIGENCE -->
+                <div class="card-custom">
+                    <h5>Keyword Intelligence</h5>
+                    <div id="keywordIntelligence"></div>
+                </div>
+
+                <!-- CREDENTIAL HARVESTING INTELLIGENCE -->
+                <div class="card-custom">
+                    <h5>Credential Harvesting Intelligence</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Indicator</th>
+                                    <th>Status</th>
+                                    <th>Risk Interpretation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="credentialTable">
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: #888;">Loading credential
+                                        intelligence...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- NETWORK EXFILTRATION INTELLIGENCE -->
+                <div class="card-custom">
+                    <h5>Network Exfiltration Intelligence</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Indicator</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="exfiltrationTable">
+                                <tr>
+                                    <td colspan="2" style="text-align: center; color: #888;">Loading network
+                                        intelligence...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="postTargetsSection" class="mt-3"></div>
+                    <div id="exfiltrationInterpretation" class="mt-3"></div>
+                </div>
+
+                <!-- JAVASCRIPT INTELLIGENCE -->
+                <div class="card-custom">
+                    <h5>JavaScript Intelligence</h5>
+                    <div id="suspiciousJs"></div>
+                </div>
+
+                <!-- SCREENSHOT GALLERY -->
+                <div class="card card-custom mt-5">
+                    <h5>Sandbox Screenshots</h5>
+                    <div id="screenshotGallery" class="row g-3 mt-3"></div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="card-custom actions-section">
+                    <h5>Next Steps</h5>
+                    <div class="d-flex justify-content-center flex-wrap">
+                        <button class="btn btn-outline-light" onclick="goBackToStatic()">
+                            <i class="fa-solid fa-arrow-left me-2"></i>
+                            Back to Static Report
+                        </button>
+                        <button class="btn btn-accent" onclick="rescanUrl()">
+                            <i class="fa-solid fa-arrow-rotate-right me-2"></i>
+                            Rescan URL
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
     </div>
-</nav>
 
-<div class="site-shell">
-<section class="section">
-
-<div class="container">
-
-<!-- HEADER -->
-<div class="header-content card-custom">
-    <h1>
-        <i class="fa-solid fa-flask me-2"></i>
-        Dynamic Threat Intelligence Report
-    </h1>
-    <p class="mb-3">Real-time behavioral analysis of URL execution in sandbox environment</p>
-    
-    <hr style="border-color: rgba(255, 255, 255, 0.1);">
-    
-    <h6 style="color: #888; margin-top: 20px; margin-bottom: 10px;">Analyzed URL</h6>
-    <div class="url-display" id="urlDisplay">
-        Loading...
-    </div>
-
-</div>
-
-<!-- CLASSIFICATION -->
-<div class="card-custom">
-    <h5>Dynamic Behavioral Classification</h5>
-    <div class="classification-box">
-        <div class="fs-4 fw-bold" id="classificationValue">Loading...</div>
-        <div id="confidenceBadge" class="confidence-badge">Confidence: --</div>
-    </div>
-    <div id="reasoningSection" class="mt-4"></div>
-</div>
-
-<!-- REDIRECT INTELLIGENCE -->
-<div class="card-custom">
-    <h5>Redirect Intelligence</h5>
-    <div class="row">
-        <div class="col-md-6">
-            <p><strong>Redirect Count:</strong> <span id="redirectCount" class="indicator-value">--</span></p>
-            <p><strong>Root Domains:</strong></p>
-            <ul id="rootDomains" class="mono-list"></ul>
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 SURL - Advanced URL Threat Intelligence Engine</p>
         </div>
-        <div class="col-md-6">
-            <p><strong>Cross Root Detected:</strong> <span id="crossRootDetected" class="indicator-value">--</span></p>
-            <p><strong>Suspicious Redirect Chain:</strong> <span id="suspiciousRedirect" class="indicator-value">--</span></p>
-        </div>
-    </div>
-    <hr style="border-color: rgba(255, 255, 255, 0.1);">
-    <p><strong>Redirect Chain:</strong></p>
-    <ul id="redirectChain" class="mono-list"></ul>
-</div>
-
-<!-- KEYWORD INTELLIGENCE -->
-<div class="card-custom">
-    <h5>Keyword Intelligence</h5>
-    <div id="keywordIntelligence"></div>
-</div>
-
-<!-- CREDENTIAL HARVESTING INTELLIGENCE -->
-<div class="card-custom">
-    <h5>Credential Harvesting Intelligence</h5>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Indicator</th>
-                    <th>Status</th>
-                    <th>Risk Interpretation</th>
-                </tr>
-            </thead>
-            <tbody id="credentialTable">
-                <tr>
-                    <td colspan="3" style="text-align: center; color: #888;">Loading credential intelligence...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- NETWORK EXFILTRATION INTELLIGENCE -->
-<div class="card-custom">
-    <h5>Network Exfiltration Intelligence</h5>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Indicator</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="exfiltrationTable">
-                <tr>
-                    <td colspan="2" style="text-align: center; color: #888;">Loading network intelligence...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <div id="postTargetsSection" class="mt-3"></div>
-    <div id="exfiltrationInterpretation" class="mt-3"></div>
-</div>
-
-<!-- JAVASCRIPT INTELLIGENCE -->
-<div class="card-custom">
-    <h5>JavaScript Intelligence</h5>
-    <div id="suspiciousJs"></div>
-</div>
-
-<!-- SCREENSHOT GALLERY -->
-<div class="card card-custom mt-5">
-    <h5>Sandbox Screenshots</h5>
-    <div id="screenshotGallery" class="row g-3 mt-3"></div>
-</div>
-
-<!-- ACTIONS -->
-<div class="card-custom actions-section">
-    <h5>Next Steps</h5>
-    <div class="d-flex justify-content-center flex-wrap">
-        <button class="btn btn-outline-light" onclick="goBackToStatic()">
-            <i class="fa-solid fa-arrow-left me-2"></i>
-            Back to Static Report
-        </button>
-        <button class="btn btn-accent" onclick="rescanUrl()">
-            <i class="fa-solid fa-arrow-rotate-right me-2"></i>
-            Rescan URL
-        </button>
-    </div>
-</div>
-
-</div>
-</section>
-</div>
-
-<footer>
-    <div class="container">
-        <p>&copy; 2026 SURL - Advanced URL Threat Intelligence Engine</p>
-    </div>
-</footer>
+    </footer>
 
 </body>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Retrieve dynamic result from localStorage
-const dynamicResult = JSON.parse(localStorage.getItem("dynamicResult"));
+    // Retrieve dynamic result from localStorage
+    const dynamicResult = JSON.parse(localStorage.getItem("dynamicResult"));
 
-// ============================================================
-// ERROR HANDLING
-// ============================================================
-if (dynamicResult && dynamicResult.error) {
-    document.body.innerHTML = `
+    // ============================================================
+    // ERROR HANDLING
+    // ============================================================
+    if (dynamicResult && dynamicResult.error) {
+        document.body.innerHTML = `
         <div style="padding:50px;color:red;background:#000;font-family:monospace;">
             <h3 style="color:#ff6b6b;margin-bottom:20px;">Engine Error</h3>
             <pre style="background:#111;padding:20px;border-radius:8px;overflow-x:auto;border:1px solid #ff6b6b;">${dynamicResult.traceback || dynamicResult.error}</pre>
             <a href="/" style="color:#25e7a2;text-decoration:none;margin-top:20px;display:inline-block;">← Return to Home</a>
         </div>
     `;
-}
-
-if (dynamicResult && dynamicResult.dynamic_analysis) {
-    const data = dynamicResult.dynamic_analysis;
-
-    // ============================================================
-    // 1. URL DISPLAY
-    // ============================================================
-    const urlDisplay = document.getElementById("urlDisplay");
-    if (urlDisplay) {
-        urlDisplay.textContent = dynamicResult.url || "Unknown URL";
     }
 
-    // ============================================================
-    // 2. CLASSIFICATION
-    // ============================================================
-    const classificationValue = document.getElementById("classificationValue");
-    const confidenceBadge = document.getElementById("confidenceBadge");
-    const reasoningSection = document.getElementById("reasoningSection");
-    
-    const behaviorClass = data.behavior_classification || {};
-    const classification = behaviorClass.classification || data.classification || "Unknown";
-    const confidence = behaviorClass.confidence || data.confidence || "Low";
-    const reasoning = behaviorClass.reasoning || [];
+    if (dynamicResult && dynamicResult.dynamic_analysis) {
+        const data = dynamicResult.dynamic_analysis;
 
-    if (classificationValue) {
-        classificationValue.textContent = classification;
-    }
-
-    if (confidenceBadge) {
-        confidenceBadge.textContent = `Confidence: ${confidence}`;
-        confidenceBadge.classList.remove("confidence-high", "confidence-medium", "confidence-low");
-
-        if (confidence.toLowerCase() === "high") {
-            confidenceBadge.classList.add("confidence-high");
-        } else if (confidence.toLowerCase() === "medium") {
-            confidenceBadge.classList.add("confidence-medium");
-        } else {
-            confidenceBadge.classList.add("confidence-low");
+        // ============================================================
+        // 1. URL DISPLAY
+        // ============================================================
+        const urlDisplay = document.getElementById("urlDisplay");
+        if (urlDisplay) {
+            urlDisplay.textContent = dynamicResult.url || "Unknown URL";
         }
-    }
 
-    if (reasoningSection && reasoning.length > 0) {
-        let reasoningHTML = "<h6><strong>Detection Reasoning</strong></h6><ul class='mb-0'>";
-        reasoning.forEach((reason) => {
-            reasoningHTML += `<li>${reason}</li>`;
-        });
-        reasoningHTML += "</ul>";
-        reasoningSection.innerHTML = reasoningHTML;
-    }
+        // ============================================================
+        // 2. CLASSIFICATION
+        // ============================================================
+        const classificationValue = document.getElementById("classificationValue");
+        const confidenceBadge = document.getElementById("confidenceBadge");
+        const reasoningSection = document.getElementById("reasoningSection");
 
-    // ============================================================
-    // 3. REDIRECT INTELLIGENCE
-    // ============================================================
-    const redirectData = data.redirect_intelligence || {};
-    const redirectCount = document.getElementById("redirectCount");
-    const rootDomains = document.getElementById("rootDomains");
-    const crossRootDetected = document.getElementById("crossRootDetected");
-    const suspiciousRedirect = document.getElementById("suspiciousRedirect");
-    const redirectChain = document.getElementById("redirectChain");
+        const behaviorClass = data.behavior_classification || {};
+        const classification = behaviorClass.classification || data.classification || "Unknown";
+        const confidence = behaviorClass.confidence || data.confidence || "Low";
+        const reasoning = behaviorClass.reasoning || [];
 
-    if (redirectCount) {
-        redirectCount.textContent = redirectData.redirect_count ?? 0;
-    }
+        if (classificationValue) {
+            classificationValue.textContent = classification;
+        }
 
-    if (crossRootDetected) {
-        crossRootDetected.textContent = redirectData.cross_root_detected ? "Yes" : "No";
-        crossRootDetected.classList.toggle("yes", !!redirectData.cross_root_detected);
-        crossRootDetected.classList.toggle("no", !redirectData.cross_root_detected);
-    }
+        if (confidenceBadge) {
+            confidenceBadge.textContent = `Confidence: ${confidence}`;
+            confidenceBadge.classList.remove("confidence-high", "confidence-medium", "confidence-low");
 
-    if (suspiciousRedirect) {
-        suspiciousRedirect.textContent = redirectData.suspicious_redirect_detected ? "Yes" : "No";
-        suspiciousRedirect.classList.toggle("yes", !!redirectData.suspicious_redirect_detected);
-        suspiciousRedirect.classList.toggle("no", !redirectData.suspicious_redirect_detected);
-    }
+            if (confidence.toLowerCase() === "high") {
+                confidenceBadge.classList.add("confidence-high");
+            } else if (confidence.toLowerCase() === "medium") {
+                confidenceBadge.classList.add("confidence-medium");
+            } else {
+                confidenceBadge.classList.add("confidence-low");
+            }
+        }
 
-    if (rootDomains) {
-        rootDomains.innerHTML = "";
-        const domains = redirectData.root_domains || [];
-        if (domains.length > 0) {
-            domains.forEach((d) => {
-                const li = document.createElement("li");
-                li.textContent = d;
-                rootDomains.appendChild(li);
+        if (reasoningSection && reasoning.length > 0) {
+            let reasoningHTML = "<h6><strong>Detection Reasoning</strong></h6><ul class='mb-0'>";
+            reasoning.forEach((reason) => {
+                reasoningHTML += `<li>${reason}</li>`;
             });
-        } else {
-            rootDomains.innerHTML = "<li class='text-muted'>No root domains recorded</li>";
-        }
-    }
-
-    if (redirectChain) {
-        redirectChain.innerHTML = "";
-        const chain = redirectData.redirect_chain || data.redirect_chain || [];
-        if (chain.length > 0) {
-            chain.forEach((url) => {
-                const li = document.createElement("li");
-                li.textContent = url;
-                redirectChain.appendChild(li);
-            });
-        } else {
-            redirectChain.innerHTML = "<li class='text-muted'>No redirect chain recorded</li>";
-        }
-    }
-
-    // ============================================================
-    // 4. KEYWORD INTELLIGENCE
-    // ============================================================
-    const keywordDiv = document.getElementById("keywordIntelligence");
-    const keywordHits = data.keyword_hits || {};
-
-    if (keywordDiv) {
-        const phishingKeywords = keywordHits.phishing_keywords || [];
-        const paymentKeywords = keywordHits.payment_keywords || [];
-        const adultKeywords = keywordHits.adult_keywords || [];
-
-        let keywordHTML = "";
-
-        if (phishingKeywords.length > 0) {
-            keywordHTML += "<h6>Phishing Keywords:</h6><ul>";
-            phishingKeywords.forEach((k) => {
-                keywordHTML += `<li class="text-danger">${k}</li>`;
-            });
-            keywordHTML += "</ul>";
+            reasoningHTML += "</ul>";
+            reasoningSection.innerHTML = reasoningHTML;
         }
 
-        if (paymentKeywords.length > 0) {
-            keywordHTML += "<h6>Payment Keywords:</h6><ul>";
-            paymentKeywords.forEach((k) => {
-                keywordHTML += `<li class="text-warning">${k}</li>`;
-            });
-            keywordHTML += "</ul>";
+        // ============================================================
+        // 3. REDIRECT INTELLIGENCE
+        // ============================================================
+        const redirectData = data.redirect_intelligence || {};
+        const redirectCount = document.getElementById("redirectCount");
+        const rootDomains = document.getElementById("rootDomains");
+        const crossRootDetected = document.getElementById("crossRootDetected");
+        const suspiciousRedirect = document.getElementById("suspiciousRedirect");
+        const redirectChain = document.getElementById("redirectChain");
+
+        if (redirectCount) {
+            redirectCount.textContent = redirectData.redirect_count ?? 0;
         }
 
-        if (adultKeywords.length > 0) {
-            keywordHTML += "<h6>Adult Keywords:</h6><ul>";
-            adultKeywords.forEach((k) => {
-                keywordHTML += `<li class="text-danger">${k}</li>`;
-            });
-            keywordHTML += "</ul>";
+        if (crossRootDetected) {
+            crossRootDetected.textContent = redirectData.cross_root_detected ? "Yes" : "No";
+            crossRootDetected.classList.toggle("yes", !!redirectData.cross_root_detected);
+            crossRootDetected.classList.toggle("no", !redirectData.cross_root_detected);
         }
 
-        if (keywordHTML === "") {
-            keywordHTML = "<p class='text-white'>No suspicious keywords detected.</p>";
+        if (suspiciousRedirect) {
+            suspiciousRedirect.textContent = redirectData.suspicious_redirect_detected ? "Yes" : "No";
+            suspiciousRedirect.classList.toggle("yes", !!redirectData.suspicious_redirect_detected);
+            suspiciousRedirect.classList.toggle("no", !redirectData.suspicious_redirect_detected);
         }
 
-        keywordDiv.innerHTML = keywordHTML;
-    }
-
-    // ============================================================
-    // 5. CREDENTIAL HARVESTING INTELLIGENCE
-    // ============================================================
-    const credentialTable = document.getElementById("credentialTable");
-    const credentialAnalysis = data.credential_analysis || {};
-
-    if (credentialTable) {
-        const credentialFields = !!credentialAnalysis.credential_fields_detected;
-        const externalForm = !!credentialAnalysis.external_form_action;
-        const ipBasedForm = !!credentialAnalysis.ip_based_form_action;
-        const hiddenInputs = !!credentialAnalysis.hidden_inputs_detected;
-        const autofocusPassword = !!credentialAnalysis.autofocus_password;
-
-        let interpretation = "No credential harvesting behavior detected.";
-
-        if (credentialFields && externalForm) {
-            interpretation = "High Risk – External credential harvesting behavior detected.";
-        } else if (credentialFields && ipBasedForm) {
-            interpretation = "High Risk – Direct IP data exfiltration.";
-        } else if (credentialFields) {
-            interpretation = "Medium Risk – Login portal behavior detected.";
+        if (rootDomains) {
+            rootDomains.innerHTML = "";
+            const domains = redirectData.root_domains || [];
+            if (domains.length > 0) {
+                domains.forEach((d) => {
+                    const li = document.createElement("li");
+                    li.textContent = d;
+                    rootDomains.appendChild(li);
+                });
+            } else {
+                rootDomains.innerHTML = "<li class='text-muted'>No root domains recorded</li>";
+            }
         }
 
-        const rows = [
-            { label: "Credential Fields Detected", value: credentialFields },
-            { label: "External Form Submission", value: externalForm },
-            { label: "IP-Based Form Submission", value: ipBasedForm },
-            { label: "Hidden Inputs Detected", value: hiddenInputs },
-            { label: "Autofocus on Password Field", value: autofocusPassword }
-        ];
+        if (redirectChain) {
+            redirectChain.innerHTML = "";
+            const chain = redirectData.redirect_chain || data.redirect_chain || [];
+            if (chain.length > 0) {
+                chain.forEach((url) => {
+                    const li = document.createElement("li");
+                    li.textContent = url;
+                    redirectChain.appendChild(li);
+                });
+            } else {
+                redirectChain.innerHTML = "<li class='text-muted'>No redirect chain recorded</li>";
+            }
+        }
 
-        credentialTable.innerHTML = "";
-        rows.forEach((row) => {
-            const statusText = row.value ? "Yes" : "No";
-            const valueClass = row.value ? "yes" : "no";
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
+        // ============================================================
+        // 4. KEYWORD INTELLIGENCE
+        // ============================================================
+        const keywordDiv = document.getElementById("keywordIntelligence");
+        const keywordHits = data.keyword_hits || {};
+
+        if (keywordDiv) {
+            const phishingKeywords = keywordHits.phishing_keywords || [];
+            const paymentKeywords = keywordHits.payment_keywords || [];
+            const adultKeywords = keywordHits.adult_keywords || [];
+
+            let keywordHTML = "";
+
+            if (phishingKeywords.length > 0) {
+                keywordHTML += "<h6>Phishing Keywords:</h6><ul>";
+                phishingKeywords.forEach((k) => {
+                    keywordHTML += `<li class="text-danger">${k}</li>`;
+                });
+                keywordHTML += "</ul>";
+            }
+
+            if (paymentKeywords.length > 0) {
+                keywordHTML += "<h6>Payment Keywords:</h6><ul>";
+                paymentKeywords.forEach((k) => {
+                    keywordHTML += `<li class="text-warning">${k}</li>`;
+                });
+                keywordHTML += "</ul>";
+            }
+
+            if (adultKeywords.length > 0) {
+                keywordHTML += "<h6>Adult Keywords:</h6><ul>";
+                adultKeywords.forEach((k) => {
+                    keywordHTML += `<li class="text-danger">${k}</li>`;
+                });
+                keywordHTML += "</ul>";
+            }
+
+            if (keywordHTML === "") {
+                keywordHTML = "<p class='text-white'>No suspicious keywords detected.</p>";
+            }
+
+            keywordDiv.innerHTML = keywordHTML;
+        }
+
+        // ============================================================
+        // 5. CREDENTIAL HARVESTING INTELLIGENCE
+        // ============================================================
+        const credentialTable = document.getElementById("credentialTable");
+        const credentialAnalysis = data.credential_analysis || {};
+
+        if (credentialTable) {
+            const credentialFields = !!credentialAnalysis.credential_fields_detected;
+            const externalForm = !!credentialAnalysis.external_form_action;
+            const ipBasedForm = !!credentialAnalysis.ip_based_form_action;
+            const hiddenInputs = !!credentialAnalysis.hidden_inputs_detected;
+            const autofocusPassword = !!credentialAnalysis.autofocus_password;
+
+            let interpretation = "No credential harvesting behavior detected.";
+
+            if (credentialFields && externalForm) {
+                interpretation = "High Risk – External credential harvesting behavior detected.";
+            } else if (credentialFields && ipBasedForm) {
+                interpretation = "High Risk – Direct IP data exfiltration.";
+            } else if (credentialFields) {
+                interpretation = "Medium Risk – Login portal behavior detected.";
+            }
+
+            const rows = [
+                { label: "Credential Fields Detected", value: credentialFields },
+                { label: "External Form Submission", value: externalForm },
+                { label: "IP-Based Form Submission", value: ipBasedForm },
+                { label: "Hidden Inputs Detected", value: hiddenInputs },
+                { label: "Autofocus on Password Field", value: autofocusPassword }
+            ];
+
+            credentialTable.innerHTML = "";
+            rows.forEach((row) => {
+                const statusText = row.value ? "Yes" : "No";
+                const valueClass = row.value ? "yes" : "no";
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
                 <td>${row.label}</td>
                 <td><span class="indicator-value ${valueClass}">${statusText}</span></td>
                 <td>${interpretation}</td>
             `;
-            credentialTable.appendChild(tr);
-        });
-    }
+                credentialTable.appendChild(tr);
+            });
+        }
 
-    // ============================================================
-    // 6. NETWORK EXFILTRATION INTELLIGENCE
-    // ============================================================
-    const exfiltrationTable = document.getElementById("exfiltrationTable");
-    const postTargetsSection = document.getElementById("postTargetsSection");
-    const exfiltrationInterpretation = document.getElementById("exfiltrationInterpretation");
-    const networkExfiltration = data.network_exfiltration || {};
+        // ============================================================
+        // 6. NETWORK EXFILTRATION INTELLIGENCE
+        // ============================================================
+        const exfiltrationTable = document.getElementById("exfiltrationTable");
+        const postTargetsSection = document.getElementById("postTargetsSection");
+        const exfiltrationInterpretation = document.getElementById("exfiltrationInterpretation");
+        const networkExfiltration = data.network_exfiltration || {};
 
-    if (exfiltrationTable) {
-        const rows = [
-            { label: "POST Requests Detected", value: !!networkExfiltration.post_requests_detected },
-            { label: "External POST Detected", value: !!networkExfiltration.external_post_detected },
-            { label: "IP-Based POST Detected", value: !!networkExfiltration.ip_post_detected },
-            { label: "Suspicious Payload Size", value: !!networkExfiltration.suspicious_post_detected }
-        ];
+        if (exfiltrationTable) {
+            const rows = [
+                { label: "POST Requests Detected", value: !!networkExfiltration.post_requests_detected },
+                { label: "External POST Detected", value: !!networkExfiltration.external_post_detected },
+                { label: "IP-Based POST Detected", value: !!networkExfiltration.ip_post_detected },
+                { label: "Suspicious Payload Size", value: !!networkExfiltration.suspicious_post_detected }
+            ];
 
-        exfiltrationTable.innerHTML = "";
-        rows.forEach((row) => {
-            const statusText = row.value ? "Yes" : "No";
-            const valueClass = row.value ? "yes" : "no";
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
+            exfiltrationTable.innerHTML = "";
+            rows.forEach((row) => {
+                const statusText = row.value ? "Yes" : "No";
+                const valueClass = row.value ? "yes" : "no";
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
                 <td>${row.label}</td>
                 <td><span class="indicator-value ${valueClass}">${statusText}</span></td>
             `;
-            exfiltrationTable.appendChild(tr);
-        });
-    }
-
-    if (postTargetsSection) {
-        const targets = networkExfiltration.post_targets || [];
-        if (targets.length > 0) {
-            let targetsHTML = "<h6>POST Destination Targets</h6><div class='post-targets-container'><ul class='mono-list mb-0'>";
-            targets.forEach((t) => {
-                targetsHTML += `<li><code>${t}</code></li>`;
+                exfiltrationTable.appendChild(tr);
             });
-            targetsHTML += "</ul></div>";
-            postTargetsSection.innerHTML = targetsHTML;
-        } else {
-            postTargetsSection.innerHTML = "";
-        }
-    }
-
-    if (exfiltrationInterpretation) {
-        const lines = [];
-
-        if (!networkExfiltration.post_requests_detected) {
-            lines.push("No outbound credential submission activity detected during sandbox execution.");
-        }
-        if (networkExfiltration.external_post_detected) {
-            lines.push("High Risk – Credential data may be transmitted to an external domain.");
-        }
-        if (networkExfiltration.ip_post_detected) {
-            lines.push("Critical Risk – Data exfiltration to direct IP address detected.");
-        }
-        if (networkExfiltration.suspicious_post_detected) {
-            lines.push("Medium Risk – Large payload submission detected.");
         }
 
-        if (lines.length === 0) {
-            lines.push("No outbound credential submission activity detected during sandbox execution.");
+        if (postTargetsSection) {
+            const targets = networkExfiltration.post_targets || [];
+            if (targets.length > 0) {
+                let targetsHTML = "<h6>POST Destination Targets</h6><div class='post-targets-container'><ul class='mono-list mb-0'>";
+                targets.forEach((t) => {
+                    targetsHTML += `<li><code>${t}</code></li>`;
+                });
+                targetsHTML += "</ul></div>";
+                postTargetsSection.innerHTML = targetsHTML;
+            } else {
+                postTargetsSection.innerHTML = "";
+            }
         }
 
-        exfiltrationInterpretation.innerHTML = lines
-            .map((line) => `<p class='text-muted mb-1'>${line}</p>`)
-            .join("");
-    }
+        if (exfiltrationInterpretation) {
+            const lines = [];
 
-    // ============================================================
-    // 7. JAVASCRIPT INTELLIGENCE
-    // ============================================================
-    const suspiciousJs = document.getElementById("suspiciousJs");
-    if (suspiciousJs) {
-        const jsIntel = data.javascript_intelligence || {};
-        const highRisk = jsIntel.high_risk || [];
-        const mediumRisk = jsIntel.medium_risk || [];
-        const credentialRelated = jsIntel.credential_related || [];
-        const summary = jsIntel.summary || "No suspicious script patterns detected.";
+            if (!networkExfiltration.post_requests_detected) {
+                lines.push("No outbound credential submission activity detected during sandbox execution.");
+            }
+            if (networkExfiltration.external_post_detected) {
+                lines.push("High Risk – Credential data may be transmitted to an external domain.");
+            }
+            if (networkExfiltration.ip_post_detected) {
+                lines.push("Critical Risk – Data exfiltration to direct IP address detected.");
+            }
+            if (networkExfiltration.suspicious_post_detected) {
+                lines.push("Medium Risk – Large payload submission detected.");
+            }
 
-        let jsHTML = `<p class='mb-3'><strong>Summary:</strong> ${summary}</p>`;
+            if (lines.length === 0) {
+                lines.push("No outbound credential submission activity detected during sandbox execution.");
+            }
 
-        if (highRisk.length > 0) {
-            jsHTML += "<div class='p-3 mb-3' style='background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.4); border-radius: 10px;'>";
-            jsHTML += "<h6 class='text-danger mb-2'>High Risk JavaScript Patterns Detected</h6><ul class='mb-0'>";
-            highRisk.forEach((item) => {
-                jsHTML += `<li class='text-danger'>${item}</li>`;
-            });
-            jsHTML += "</ul></div>";
+            exfiltrationInterpretation.innerHTML = lines
+                .map((line) => `<p class='text-muted mb-1'>${line}</p>`)
+                .join("");
         }
 
-        if (credentialRelated.length > 0) {
-            jsHTML += "<div class='p-3 mb-3' style='background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 10px;'>";
-            jsHTML += "<h6 class='text-warning mb-2'>Credential-related JavaScript Behavior Detected</h6><ul class='mb-0'>";
-            credentialRelated.forEach((item) => {
-                jsHTML += `<li class='text-warning'>${item}</li>`;
-            });
-            jsHTML += "</ul></div>";
+        // ============================================================
+        // 7. JAVASCRIPT INTELLIGENCE
+        // ============================================================
+        const suspiciousJs = document.getElementById("suspiciousJs");
+        if (suspiciousJs) {
+            const jsIntel = data.javascript_intelligence || {};
+            const highRisk = jsIntel.high_risk || [];
+            const mediumRisk = jsIntel.medium_risk || [];
+            const credentialRelated = jsIntel.credential_related || [];
+            const summary = jsIntel.summary || "No suspicious script patterns detected.";
+
+            let jsHTML = `<p class='mb-3'><strong>Summary:</strong> ${summary}</p>`;
+
+            if (highRisk.length > 0) {
+                jsHTML += "<div class='p-3 mb-3' style='background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.4); border-radius: 10px;'>";
+                jsHTML += "<h6 class='text-danger mb-2'>High Risk JavaScript Patterns Detected</h6><ul class='mb-0'>";
+                highRisk.forEach((item) => {
+                    jsHTML += `<li class='text-danger'>${item}</li>`;
+                });
+                jsHTML += "</ul></div>";
+            }
+
+            if (credentialRelated.length > 0) {
+                jsHTML += "<div class='p-3 mb-3' style='background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 10px;'>";
+                jsHTML += "<h6 class='text-warning mb-2'>Credential-related JavaScript Behavior Detected</h6><ul class='mb-0'>";
+                credentialRelated.forEach((item) => {
+                    jsHTML += `<li class='text-warning'>${item}</li>`;
+                });
+                jsHTML += "</ul></div>";
+            }
+
+            if (mediumRisk.length > 0) {
+                jsHTML += "<div class='p-3 mb-3' style='background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px;'>";
+                jsHTML += "<h6 class='mb-2'>Moderate Dynamic Script Behavior</h6><ul class='mb-0'>";
+                mediumRisk.forEach((item) => {
+                    jsHTML += `<li>${item}</li>`;
+                });
+                jsHTML += "</ul></div>";
+            }
+
+            if (highRisk.length === 0 && mediumRisk.length === 0 && credentialRelated.length === 0) {
+                jsHTML += "<p class='text-muted'>No suspicious script patterns detected.</p>";
+            }
+
+            suspiciousJs.innerHTML = jsHTML;
         }
 
-        if (mediumRisk.length > 0) {
-            jsHTML += "<div class='p-3 mb-3' style='background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px;'>";
-            jsHTML += "<h6 class='mb-2'>Moderate Dynamic Script Behavior</h6><ul class='mb-0'>";
-            mediumRisk.forEach((item) => {
-                jsHTML += `<li>${item}</li>`;
-            });
-            jsHTML += "</ul></div>";
-        }
+        // ============================================================
+        // 8. SCREENSHOT GALLERY
+        // ============================================================
+        const gallery = document.getElementById("screenshotGallery");
+        if (gallery) {
+            const shots = data.screenshots || [];
+            const adultKeywords = (data.keyword_hits?.adult_keywords || []);
+            const hasAdultKeywords = adultKeywords.length > 0;
 
-        if (highRisk.length === 0 && mediumRisk.length === 0 && credentialRelated.length === 0) {
-            jsHTML += "<p class='text-muted'>No suspicious script patterns detected.</p>";
-        }
+            if (hasAdultKeywords) {
+                gallery.innerHTML = "<p class='text-muted'>Screenshot preview disabled due to adult content classification.</p>";
+            } else if (shots.length > 0) {
+                let galleryHTML = "";
+                shots.forEach((ss) => {
+                    const raw = typeof ss === "string" ? ss : (ss.path || ss.name || "");
+                    const imageName = raw.split("/").pop();
+                    const label = typeof ss === "object" && ss.type ? ss.type : "Screenshot";
 
-        suspiciousJs.innerHTML = jsHTML;
-    }
-
-    // ============================================================
-    // 8. SCREENSHOT GALLERY
-    // ============================================================
-    const gallery = document.getElementById("screenshotGallery");
-    if (gallery) {
-        const shots = data.screenshots || [];
-        const adultKeywords = (data.keyword_hits?.adult_keywords || []);
-        const hasAdultKeywords = adultKeywords.length > 0;
-
-        if (hasAdultKeywords) {
-            gallery.innerHTML = "<p class='text-muted'>Screenshot preview disabled due to adult content classification.</p>";
-        } else if (shots.length > 0) {
-            let galleryHTML = "";
-            shots.forEach((ss) => {
-                const raw = typeof ss === "string" ? ss : (ss.path || ss.name || "");
-                const imageName = raw.split("/").pop();
-                const label = typeof ss === "object" && ss.type ? ss.type : "Screenshot";
-
-                galleryHTML += `
+                    galleryHTML += `
                     <div class="col-md-4">
                         <div class="card bg-dark p-2">
                             <small class="text-muted text-center">${label}</small>
@@ -863,34 +872,35 @@ if (dynamicResult && dynamicResult.dynamic_analysis) {
                         </div>
                     </div>
                 `;
-            });
-            gallery.innerHTML = galleryHTML;
-        } else {
-            gallery.innerHTML = "<p class='text-muted'>No screenshots captured</p>";
+                });
+                gallery.innerHTML = galleryHTML;
+            } else {
+                gallery.innerHTML = "<p class='text-muted'>No screenshots captured</p>";
+            }
         }
-    }
 
-} else {
-    // Fallback if data is missing
-    document.body.innerHTML += `
+    } else {
+        // Fallback if data is missing
+        document.body.innerHTML += `
         <div style="text-align: center; padding: 50px; color: #888;">
             <p>No dynamic analysis data found. Please run a scan first.</p>
             <a href="/" class="btn btn-accent mt-3">Return to Home</a>
         </div>
     `;
-}
+    }
 
-// ============================================================
-// Navigation Functions
-// ============================================================
-function goBackToStatic() {
-    window.location.href = "/results";
-}
+    // ============================================================
+    // Navigation Functions
+    // ============================================================
+    function goBackToStatic() {
+        window.location.href = "/results";
+    }
 
-function rescanUrl() {
-    window.location.href = "/";
-}
+    function rescanUrl() {
+        window.location.href = "/";
+    }
 </script>
 
 </body>
+
 </html>
