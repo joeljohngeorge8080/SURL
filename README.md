@@ -220,37 +220,13 @@ docker run -d \
 
 ### 4. Access the Application
 
-Once the container is running, open:
+Once the container is running, access the site by clicking the URL below:
 
-```
-http://<your-ec2-public-ip>
-```
-
-Or if a domain is configured:
-
-```
-http://sentinelurl.site
-```
+[http://sentinelurl.site](http://sentinelurl.site)
 
 ---
 
-### 5. (Optional) Domain Setup
 
-If you have a domain (e.g., from Namecheap):
-
-- Create an **A record** pointing to your EC2 public IP
-- Wait for DNS propagation
-
----
-
-### 6. (Optional) HTTPS Setup
-
-For production use, configure HTTPS using:
-
-- NGINX + Let's Encrypt (Certbot)
-- or AWS Certificate Manager with an Application Load Balancer
-
----
 
 ### Notes
 
