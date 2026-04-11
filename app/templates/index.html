@@ -92,9 +92,12 @@
         }
 
         @keyframes gradientShift {
-            0%, 100% {
+
+            0%,
+            100% {
                 background-position: 0% 50%;
             }
+
             50% {
                 background-position: 100% 50%;
             }
@@ -238,9 +241,11 @@
             0% {
                 transform: translateY(0) scale(1);
             }
+
             50% {
                 transform: translateY(-12px) scale(1.02);
             }
+
             100% {
                 transform: translateY(-8px) scale(1);
             }
@@ -700,10 +705,12 @@
                 filter: blur(10px);
                 opacity: 0;
             }
+
             50% {
                 filter: blur(5px);
                 opacity: 0.5;
             }
+
             100% {
                 filter: blur(0px);
                 opacity: 1;
@@ -878,16 +885,20 @@
             <div class="container">
                 <h2 class="section-title" data-aos="fade-right">The Developers</h2>
 
-                <div class="row g-4">
+                <div class="row g-4 justify-content-center">
                     <div class="col-md-3">
-                        <div class="dev-card" data-aos="zoom-in">
-                            <img class="dev-avatar"
-                                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80">
-                            <h6>Joel John George</h6>
-                            <p>Full Stack Developer & DevOps Engineer</p>
-                        </div>
+                        <a href="https://www.linkedin.com/in/joel-john-george-716874287" target="_blank"
+                            style="text-decoration: none; color: inherit;">
+                            <div class="dev-card" data-aos="zoom-in">
+                                <img class="dev-avatar"
+                                    src="assets/img/WhatsApp%20Image%202026-03-24%20at%2010.38.04%20AM.jpeg">
+                                <h6>Joel John George</h6>
+                                <p>Full Stack Developer & DevOps Engineer</p>
+                            </div>
+                        </a>
                     </div>
 
+                    <!-- Other developers commented out as requested
                     <div class="col-md-3">
                         <div class="dev-card" data-aos="zoom-in">
                             <img class="dev-avatar"
@@ -914,6 +925,7 @@
                             <p>Documentation</p>
                         </div>
                     </div>
+                    -->
 
                 </div>
             </div>
