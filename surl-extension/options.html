@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SURL — Extension Settings & Intelligence Config</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header class="options-header">
+      <div class="brand">
+        <img src="icons/icon48.png" alt="SURL Logo" class="brand-icon">
+        <div>
+          <h1>SURL Configuration Console</h1>
+          <p class="subtitle">Customize Sentinel URL connection, detection thresholds, and behavior</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="settings-card">
+      <!-- Section 1: Server Connection -->
+      <div class="setting-group">
+        <h2>Backend Server Connection</h2>
+        <p class="description">
+          The API URL where SURL FastAPI backend is hosted. Default is local development.
+        </p>
+
+        <div class="field-row">
+          <label for="apiUrlInput">SURL API Base URL</label>
+          <div class="input-with-btn">
+            <input type="text" id="apiUrlInput" placeholder="http://localhost:8000" spellcheck="false" />
+            <button id="testConnectionBtn" class="btn btn-secondary">Test Connection</button>
+          </div>
+          <div class="preset-buttons">
+            <span class="preset-label">Quick Presets:</span>
+            <button type="button" class="preset-btn" id="presetLocalBtn">💻 Localhost (http://localhost:8000)</button>
+            <button type="button" class="preset-btn" id="presetCloudBtn">☁️ Cloud (https://sentinelurl.site)</button>
+            <button type="button" class="preset-btn" id="presetAutoBtn">⚡ Auto (Localhost → Cloud)</button>
+          </div>
+        </div>
+
+        <div id="connectionResult" class="connection-status" style="display: none;"></div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Section 2: Scanning Preferences -->
+      <div class="setting-group">
+        <h2>Threat Scan Preferences</h2>
+        <p class="description">Choose the default engine mode applied when scanning.</p>
+
+        <div class="field-row">
+          <label>Default Scan Pipeline</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="defaultMode" value="static" checked>
+              <span><strong>Static Heuristics (Recommended)</strong> — Fast lexical, SSL/TLS, DNS & WHOIS checks (~1-2s).</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="defaultMode" value="dynamic">
+              <span><strong>Dynamic Sandbox</strong> — Headless Chromium execution with DOM monitoring & network interception (~10-25s).</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="alertThresholdInput">In-Page Alert Threshold (Risk Score: <span id="thresholdValDisplay">70</span>/100)</label>
+          <p class="sub-description">Trigger warnings when a scanned page's risk score meets or exceeds this threshold.</p>
+          <input type="range" id="alertThresholdInput" min="30" max="95" step="5" value="70" class="slider" />
+          <div class="slider-marks">
+            <span>30 (Strict)</span>
+            <span>70 (Balanced)</span>
+            <span>95 (Critical Only)</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Section 3: Browser Integration -->
+      <div class="setting-group">
+        <h2>Browser Integration</h2>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="enableContextMenuCheckbox" checked />
+          <label for="enableContextMenuCheckbox">
+            <strong>Enable Right-Click Context Menus</strong>
+            <span class="sub-desc">Adds "Scan Link with SURL" and "Scan Current Page" to the right-click menu.</span>
+          </label>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="enableBannerCheckbox" checked />
+          <label for="enableBannerCheckbox">
+            <strong>Show In-Page Threat Banners</strong>
+            <span class="sub-desc">Display a high-visibility warning at the top of pages flagged as dangerous.</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-row">
+        <button id="saveBtn" class="btn btn-primary">Save Settings</button>
+        <button id="resetDefaultsBtn" class="btn btn-secondary">Reset to Defaults</button>
+        <span id="saveStatus" class="save-status"></span>
+      </div>
+    </main>
+
+    <footer class="options-footer">
+      <p>Sentinel URL (SURL) — Open Source Threat Intelligence</p>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

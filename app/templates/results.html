@@ -445,8 +445,13 @@
                 <!-- INPUT URL -->
                 <div class="card card-custom mb-5">
                     <h5>Analyzed URL</h5>
-                    <p id="urlValue" class="text-break mb-0"
-                        style="text-align:center; word-wrap:break-word; color:var(--accent);"></p>
+                    <p id="urlValue" class="text-break mb-2"
+                        style="text-align:center; word-wrap:break-word; color:var(--accent); font-weight: 600;"></p>
+                    <div id="urlActions" class="text-center mt-2" style="display: none;">
+                        <a id="directSiteBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-external-link-alt me-1"></i> Proceed to Site
+                        </a>
+                    </div>
                 </div>
 
                 <!-- PBH -->
@@ -529,90 +534,105 @@
 
     </div>
     <script>
+        let result = null;
 
-        const result = JSON.parse(localStorage.getItem("scanResult"));
-
-        if (result) {
+        function renderResults(data) {
+            result = data;
+            if (!result) return;
 
             // Risk Score
-            document.getElementById("riskScore").textContent = result.risk_score || 0;
+            const riskScoreEl = document.getElementById("riskScore");
+            if (riskScoreEl) riskScoreEl.textContent = result.risk_score || 0;
 
             // Risk Breakdown
-            document.getElementById("transportRisk").textContent = result.transport_risk || 0;
-            document.getElementById("phishingRisk").textContent = result.phishing_risk || 0;
-            document.getElementById("confidenceScore").textContent = (result.confidence_score || 0) + "%";
+            const trEl = document.getElementById("transportRisk");
+            if (trEl) trEl.textContent = result.transport_risk || 0;
+            const prEl = document.getElementById("phishingRisk");
+            if (prEl) prEl.textContent = result.phishing_risk || 0;
+            const crEl = document.getElementById("confidenceScore");
+            if (crEl) crEl.textContent = (result.confidence_score || 0) + "%";
 
             // Severity Badge
             const badge = document.getElementById("severityBadge");
-            badge.textContent = (result.severity || "Low").toUpperCase();
-
-            if (result.severity === "Low") {
-                badge.className = "badge bg-success fs-5 px-4 py-2";
-            }
-            else if (result.severity === "Medium") {
-                badge.className = "badge bg-warning fs-5 px-4 py-2";
-            }
-            else if (result.severity === "Medium-High") {
-                badge.className = "badge bg-warning fs-5 px-4 py-2";
-            }
-            else {
-                badge.className = "badge bg-danger fs-5 px-4 py-2";
+            if (badge) {
+                badge.textContent = (result.severity || "Low").toUpperCase();
+                if (result.severity === "Low") {
+                    badge.className = "badge bg-success fs-5 px-4 py-2";
+                } else if (result.severity === "Medium") {
+                    badge.className = "badge bg-warning fs-5 px-4 py-2";
+                } else if (result.severity === "Medium-High") {
+                    badge.className = "badge bg-warning fs-5 px-4 py-2";
+                } else {
+                    badge.className = "badge bg-danger fs-5 px-4 py-2";
+                }
             }
 
             // PBH
-            document.getElementById("pbhValue").textContent =
-                result.pbh_fingerprint || "N/A";
+            const pbhEl = document.getElementById("pbhValue");
+            if (pbhEl) pbhEl.textContent = result.pbh_fingerprint || "N/A";
 
             // URL
-            document.getElementById("urlValue").textContent =
-                result.url || "N/A";
+            const urlEl = document.getElementById("urlValue");
+            if (urlEl) urlEl.textContent = result.url || "N/A";
+
+            // Site Direct Visit Button
+            const directSiteBtn = document.getElementById("directSiteBtn");
+            const urlActions = document.getElementById("urlActions");
+            if (directSiteBtn && urlActions && result.url) {
+                directSiteBtn.href = result.url;
+                urlActions.style.display = "block";
+                if (result.severity === "High" || (result.risk_score && result.risk_score >= 50)) {
+                    directSiteBtn.className = "btn btn-sm btn-outline-danger";
+                    directSiteBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Proceed to Site (Risk Warning)';
+                    directSiteBtn.onclick = (e) => {
+                        if (!confirm("⚠️ WARNING: SURL flagged this website as potentially malicious or high risk. Are you sure you want to visit it?")) {
+                            e.preventDefault();
+                        }
+                    };
+                } else {
+                    directSiteBtn.className = "btn btn-sm btn-outline-success";
+                    directSiteBtn.innerHTML = '<i class="fas fa-shield-alt me-1"></i> Proceed to Site (Verified Safe)';
+                    directSiteBtn.onclick = null;
+                }
+            }
 
             // Radar Chart
             const ctx = document.getElementById('riskRadar');
-
-            new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['Transport Risk', 'Phishing Risk', 'Overall Risk', 'Confidence'],
-                    datasets: [{
-                        label: 'Threat Profile',
-                        data: [
-                            result.transport_risk || 0,
-                            result.phishing_risk || 0,
-                            result.risk_score || 0,
-                            result.confidence_score || 0
-                        ],
-                        backgroundColor: 'rgba(37, 231, 162, 0.2)',
-                        borderColor: 'rgba(37, 231, 162, 1)',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#25e7a2'
-                    }]
-                },
-                options: {
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                display: false
-                            },
-                            grid: {
-                                color: 'rgba(255,255,255,0.1)'
-                            },
-                            pointLabels: {
-                                color: 'white'
-                            }
-                        }
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['Transport Risk', 'Phishing Risk', 'Overall Risk', 'Confidence'],
+                        datasets: [{
+                            label: 'Threat Profile',
+                            data: [
+                                result.transport_risk || 0,
+                                result.phishing_risk || 0,
+                                result.risk_score || 0,
+                                result.confidence_score || 0
+                            ],
+                            backgroundColor: 'rgba(37, 231, 162, 0.2)',
+                            borderColor: 'rgba(37, 231, 162, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#25e7a2'
+                        }]
                     },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'white'
+                    options: {
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: { display: false },
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                pointLabels: { color: 'white' }
                             }
+                        },
+                        plugins: {
+                            legend: { labels: { color: 'white' } }
                         }
                     }
-                }
-            });
+                });
+            }
 
             // Executive Summary
             const summarySection = document.getElementById("executiveSummary");
@@ -622,24 +642,25 @@
 
             // Detailed Indicators Table
             const table = document.getElementById("indicatorTable");
-            table.innerHTML = "";
-
-            (result.detailed_analysis || []).forEach((item, index) => {
-                table.innerHTML += `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${item.indicator || "-"}</td>
-                <td>${item.severity || "-"}</td>
-                <td>${item.remediation_strategy || "-"}</td>
-            </tr>
-        `;
-            });
+            if (table) {
+                table.innerHTML = "";
+                (result.detailed_analysis || []).forEach((item, index) => {
+                    table.innerHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${item.indicator || "-"}</td>
+                            <td>${item.severity || "-"}</td>
+                            <td>${item.remediation_strategy || "-"}</td>
+                        </tr>
+                    `;
+                });
+            }
 
             // Pretty JSON
             const jsonElement = document.getElementById("jsonOutput");
             if (jsonElement) {
                 jsonElement.textContent = JSON.stringify(result, null, 4);
-                hljs.highlightAll();
+                if (window.hljs) hljs.highlightAll();
             }
 
             // Detailed Technical Analysis
@@ -648,16 +669,16 @@
                 detailedContainer.innerHTML = "";
                 (result.detailed_analysis || []).forEach((item, index) => {
                     detailedContainer.innerHTML += `
-                <div class="analysis-item">
-                    <h6>${index + 1}. ${item.indicator}</h6>
-                    <strong>Technical Explanation:</strong>
-                    <p>${item.report_paragraph}</p>
-                    <strong>Remediation Strategy:</strong>
-                    <p>${item.remediation_strategy}</p>
-                    <strong>Verification Strategy:</strong>
-                    <p>${item.verification_strategy}</p>
-                </div>
-            `;
+                        <div class="analysis-item">
+                            <h6>${index + 1}. ${item.indicator}</h6>
+                            <strong>Technical Explanation:</strong>
+                            <p>${item.report_paragraph}</p>
+                            <strong>Remediation Strategy:</strong>
+                            <p>${item.remediation_strategy}</p>
+                            <strong>Verification Strategy:</strong>
+                            <p>${item.verification_strategy}</p>
+                        </div>
+                    `;
                 });
             }
 
@@ -667,34 +688,82 @@
                 safetyContainer.innerHTML = "";
                 if (result.severity === "High") {
                     safetyContainer.innerHTML = `
-                <p>
-                This website demonstrates multiple high-risk security indicators. 
-                It is strongly advised not to enter any personal credentials, financial 
-                information, or confidential data on this domain.
-                </p>
-                <ul>
-                    <li>Avoid downloading files from this website.</li>
-                    <li>Do not click embedded links within suspicious emails referencing this domain.</li>
-                    <li>Report the domain to your organization's security team if accessed in a corporate environment.</li>
-                    <li>Clear browser cache and monitor accounts if interaction already occurred.</li>
-                </ul>
-            `;
-                }
-                else if (result.severity === "Medium") {
+                        <p>
+                        This website demonstrates multiple high-risk security indicators. 
+                        It is strongly advised not to enter any personal credentials, financial 
+                        information, or confidential data on this domain.
+                        </p>
+                        <ul>
+                            <li>Avoid downloading files from this website.</li>
+                            <li>Do not click embedded links within suspicious emails referencing this domain.</li>
+                            <li>Report the domain to your organization's security team if accessed in a corporate environment.</li>
+                            <li>Clear browser cache and monitor accounts if interaction already occurred.</li>
+                        </ul>
+                    `;
+                } else if (result.severity === "Medium") {
                     safetyContainer.innerHTML = `
-                <p>
-                This website shows moderate risk indicators. While it may not be actively malicious, 
-                caution is advised before interacting with sensitive inputs.
-                </p>
-                <ul>
-                    <li>Verify domain legitimacy through trusted sources.</li>
-                    <li>Check certificate validity manually.</li>
-                    <li>Avoid sharing confidential credentials unless ownership is confirmed.</li>
-                </ul>
-            `;
+                        <p>
+                        This website shows moderate risk indicators. While it may not be actively malicious, 
+                        caution is advised before interacting with sensitive inputs.
+                        </p>
+                        <ul>
+                            <li>Verify domain legitimacy through trusted sources.</li>
+                            <li>Check certificate validity manually.</li>
+                            <li>Avoid sharing confidential credentials unless ownership is confirmed.</li>
+                        </ul>
+                    `;
+                } else {
+                    safetyContainer.innerHTML = `
+                        <p>
+                        This website has been verified with low risk indicators. Standard security hygiene is still advised.
+                        </p>
+                        <ul>
+                            <li>Always verify that the browser address bar displays a valid HTTPS padlock.</li>
+                            <li>Ensure you are navigating to the expected domain name.</li>
+                        </ul>
+                    `;
                 }
             }
         }
+
+        async function initResults() {
+            const queryUrl = new URLSearchParams(window.location.search).get("url");
+            let stored = null;
+            try {
+                stored = JSON.parse(localStorage.getItem("scanResult"));
+            } catch (e) {}
+
+            if (queryUrl && (!stored || stored.url !== queryUrl)) {
+                const urlEl = document.getElementById("urlValue");
+                if (urlEl) urlEl.textContent = queryUrl + " (Analyzing...)";
+                const summaryEl = document.getElementById("executiveSummary");
+                if (summaryEl) summaryEl.textContent = "SURL is analyzing " + queryUrl + ". Please wait a moment...";
+
+                try {
+                    const resp = await fetch("/scan", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: queryUrl })
+                    });
+                    const data = await resp.json();
+                    if (data && !data.error) {
+                        stored = data;
+                        localStorage.setItem("scanResult", JSON.stringify(data));
+                    } else if (summaryEl) {
+                        summaryEl.textContent = "Scan error: " + (data.error || "Failed to scan URL");
+                    }
+                } catch (e) {
+                    console.error("Scan fetch failed:", e);
+                    if (summaryEl) summaryEl.textContent = "Network error connecting to SURL scanning service.";
+                }
+            }
+
+            if (stored) {
+                renderResults(stored);
+            }
+        }
+
+        initResults();
 
         const runDynamicBtn = document.getElementById("runDynamicBtn");
         if (runDynamicBtn) {

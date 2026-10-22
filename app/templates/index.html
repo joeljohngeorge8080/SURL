@@ -1229,6 +1229,18 @@
             window.location.href = "/results";
         }
 
+        // Auto-run scan if ?url= is passed in query string
+        window.addEventListener("DOMContentLoaded", () => {
+            const params = new URLSearchParams(window.location.search);
+            const targetUrl = params.get("url");
+            if (targetUrl) {
+                const input = document.querySelector("input[type='text'], input[type='url']");
+                if (input && form) {
+                    input.value = targetUrl;
+                    form.dispatchEvent(new Event("submit"));
+                }
+            }
+        });
 
     </script>
 

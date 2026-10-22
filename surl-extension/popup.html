@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SURL — Sentinel URL Security Scanner</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="surl-container">
+    <!-- Header -->
+    <header class="surl-header">
+      <div class="brand">
+        <img src="icons/icon48.png" alt="SURL Logo" class="brand-logo">
+        <div class="brand-text">
+          <div class="brand-title">SURL</div>
+          <div class="brand-subtitle">SENTINEL URL INTEL</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div id="serverStatus" class="status-pill status-checking" title="Checking SURL Backend...">
+          <span class="status-dot"></span>
+          <span class="status-label">Connecting</span>
+        </div>
+        <button id="openSettingsBtn" class="icon-btn" title="Extension Settings">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="surl-main">
+      <!-- Backend Environment Switcher -->
+      <div class="env-selector-bar">
+        <span class="env-label">BACKEND:</span>
+        <div class="env-toggle-group">
+          <button id="envLocalBtn" class="env-toggle-btn active" data-url="http://localhost:8000" title="Connect to Localhost (http://localhost:8000)">💻 Local</button>
+          <button id="envCloudBtn" class="env-toggle-btn" data-url="https://sentinelurl.site" title="Connect to Cloud (https://sentinelurl.site)">☁️ Cloud</button>
+          <button id="envAutoBtn" class="env-toggle-btn" data-url="auto" title="Auto: Localhost if online, else Cloud fallback">⚡ Auto</button>
+        </div>
+      </div>
+
+      <!-- Input Section -->
+      <section id="inputSection" class="section-card">
+        <div class="input-header">
+          <label for="urlInput">TARGET URL TO SCAN</label>
+          <button id="useCurrentTabBtn" class="pill-btn" title="Use Current Tab URL">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Current Tab
+          </button>
+        </div>
+
+        <div class="input-wrapper">
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="https://suspicious-website.com"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button id="clearInputBtn" class="clear-btn" title="Clear URL" style="display: none;">✕</button>
+        </div>
+
+        <!-- Mode selector -->
+        <div class="mode-selector">
+          <label class="mode-option">
+            <input type="radio" name="scanMode" value="static" checked>
+            <span class="mode-box">
+              <span class="mode-name">⚡ Static Heuristics</span>
+              <span class="mode-desc">DNS, WHOIS, SSL, Lexical</span>
+            </span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="scanMode" value="dynamic">
+            <span class="mode-box">
+              <span class="mode-name">🛡️ Dynamic Sandbox</span>
+              <span class="mode-desc">Playwright Chromium</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Scan Button -->
+        <button id="startScanBtn" class="primary-scan-btn">
+          <span class="btn-glow"></span>
+          <span class="btn-text">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            EXECUTE THREAT SCAN
+          </span>
+        </button>
+      </section>
+
+      <!-- Scanning Terminal Animation -->
+      <section id="scanningSection" class="section-card scan-terminal-card" style="display: none;">
+        <div class="radar-box">
+          <div class="radar-circle circle-1"></div>
+          <div class="radar-circle circle-2"></div>
+          <div class="radar-circle circle-3"></div>
+          <div class="radar-scanner"></div>
+          <div class="radar-icon">🛡️</div>
+        </div>
+
+        <div class="scan-title">RUNNING SECURITY PIPELINE</div>
+        <div class="progress-bar-container">
+          <div id="scanProgressBar" class="progress-bar-fill"></div>
+        </div>
+
+        <div class="terminal-log-box">
+          <div id="terminalLog" class="terminal-log">
+            <div class="log-line active">[+] Initializing SURL analysis engine...</div>
+          </div>
+        </div>
+
+        <button id="cancelScanBtn" class="secondary-btn cancel-btn">Abort Scan</button>
+      </section>
+
+      <!-- Error Card -->
+      <section id="errorSection" class="section-card error-card" style="display: none;">
+        <div class="error-icon">⚠️</div>
+        <div id="errorMessage" class="error-text">Scan encountered an error.</div>
+        <div class="error-actions">
+          <button id="retryScanBtn" class="secondary-btn">Try Again</button>
+          <button id="openOptionsErrorBtn" class="secondary-btn">Check Server Config</button>
+        </div>
+      </section>
+
+      <!-- Results Card -->
+      <section id="resultSection" class="section-card result-card" style="display: none;">
+        <!-- Score Header Banner -->
+        <div id="resultBanner" class="result-banner">
+          <div class="score-circle-wrapper">
+            <div id="scoreCircle" class="score-circle">
+              <span id="scoreValue" class="score-number">0</span>
+              <span class="score-max">/100</span>
+            </div>
+          </div>
+          <div class="result-headline">
+            <div id="severityBadge" class="severity-badge badge-safe">SAFE</div>
+            <div id="resultUrl" class="result-url" title="">https://...</div>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <div class="metric-label">PHISHING RISK</div>
+            <div class="metric-bar-bg">
+              <div id="phishingRiskBar" class="metric-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div id="phishingRiskVal" class="metric-val">0%</div>
+          </div>
+
+          <div class="metric-item">
+            <div class="metric-label">TRANSPORT RISK</div>
+            <div class="metric-bar-bg">
+              <div id="transportRiskBar" class="metric-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div id="transportRiskVal" class="metric-val">0%</div>
+          </div>
+
+          <div class="metric-item">
+            <div class="metric-label">CONFIDENCE</div>
+            <div class="metric-bar-bg">
+              <div id="confidenceBar" class="metric-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div id="confidenceVal" class="metric-val">0%</div>
+          </div>
+        </div>
+
+        <!-- PBH Fingerprint -->
+        <div class="fingerprint-box">
+          <div class="fp-title">
+            <span>PBH FINGERPRINT</span>
+            <button id="copyFingerprintBtn" class="copy-tiny-btn" title="Copy Fingerprint">Copy</button>
+          </div>
+          <code id="pbhFingerprintVal" class="fp-code">PBH-0000-0000-0000-0000</code>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="summary-box">
+          <div class="box-label">EXECUTIVE SUMMARY</div>
+          <p id="executiveSummaryText" class="summary-text">Summary pending...</p>
+        </div>
+
+        <!-- Indicators Breakdown Accordion -->
+        <div class="indicators-section">
+          <div class="indicators-header" id="toggleIndicatorsBtn">
+            <span class="box-label">DETAILED INDICATORS (<span id="indicatorCount">0</span>)</span>
+            <span id="indicatorsArrow" class="arrow">▼</span>
+          </div>
+          <div id="indicatorsList" class="indicators-list" style="display: none;"></div>
+        </div>
+
+        <!-- Results Footer Actions -->
+        <div class="result-footer-actions">
+          <button id="viewInDashboardBtn" class="footer-btn primary-footer-btn" title="Open in SURL Web App">
+            🌐 Open in SURL Web
+          </button>
+          <button id="copyJsonBtn" class="footer-btn" title="Copy Full Report as JSON">
+            📋 Copy JSON
+          </button>
+          <button id="resetScanBtn" class="footer-btn" title="Scan Another URL">
+            🔄 New Scan
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="surl-footer">
+      <span>Sentinel URL v1.0.0</span>
+      <span class="footer-divider">•</span>
+      <a href="#" id="viewLogsLink">Web Dashboard</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
