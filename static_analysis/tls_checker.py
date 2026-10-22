@@ -2,6 +2,10 @@ import socket
 import ssl
 from datetime import datetime
 
+# OpenSSL X509_V_ERR_* codes
+SELF_SIGNED_VERIFY_CODES = {18, 19}   # DEPTH_ZERO_SELF_SIGNED_CERT, SELF_SIGNED_CERT_IN_CHAIN
+HOSTNAME_MISMATCH_VERIFY_CODE = 62    # HOSTNAME_MISMATCH
+
 
 def check_tls_certificate(domain: str) -> dict:
 
@@ -38,13 +42,16 @@ def check_tls_certificate(domain: str) -> dict:
                 ).days
 
     except ssl.SSLCertVerificationError as e:
+        # ssl.CertificateError is an alias of this class, so the specific
+        # failure has to be read from OpenSSL's verify code.
         result["https_supported"] = True
         result["certificate_valid"] = False
         result["error"] = str(e)
 
-    except ssl.CertificateError:
-        result["domain_mismatch"] = True
-        result["certificate_valid"] = False
+        if e.verify_code in SELF_SIGNED_VERIFY_CODES:
+            result["self_signed_cert"] = True
+        elif e.verify_code == HOSTNAME_MISMATCH_VERIFY_CODE:
+            result["domain_mismatch"] = True
 
     except Exception as e:
         result["error"] = str(e)

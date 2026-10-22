@@ -32,7 +32,7 @@ def generate_explanation(static_results, score_result):
                 "test the configuration using SSL Labs (ssllabs.com) for detailed analysis."
             )
 
-        elif "TLS" in item or "self-signed" in item.lower():
+        elif ("TLS" in item or "self-signed" in item.lower()) and "mismatch" not in item.lower():
             explanation_block["report_paragraph"] = (
                 "The site either does not support TLS properly or uses a self-signed certificate. "
                 "Self-signed certificates lack verification from a trusted authority, "

@@ -1,4 +1,5 @@
 from datetime import datetime
+import asyncio
 import time
 import uuid
 import ipaddress
@@ -41,12 +42,14 @@ def is_ip_address(url: str) -> bool:
 # ==========================================================
 def is_private_ip(url: str) -> bool:
     """
-    Detect if the URL resolves to a private or loopback IP.
-    Blocks:
+    Detect if the URL points at, or resolves to, a non-public IP.
+    Blocks anything that is not globally routable, e.g.:
         10.x.x.x
         172.16.x.x – 172.31.x.x
         192.168.x.x
-        127.x.x.x
+        127.x.x.x / ::1
+        169.254.x.x  (cloud metadata)
+        0.0.0.0
         localhost
     """
 
@@ -60,17 +63,21 @@ def is_private_ip(url: str) -> bool:
         # Direct IP
         try:
             ip = ipaddress.ip_address(host)
-            return ip.is_private or ip.is_loopback
+            return not ip.is_global
         except ValueError:
             pass  # Not an IP, continue
 
-        # DNS resolution
+        # DNS resolution — block if ANY resolved address is non-public
         try:
-            resolved_ip = socket.gethostbyname(host)
-            ip = ipaddress.ip_address(resolved_ip)
-            return ip.is_private or ip.is_loopback
+            infos = socket.getaddrinfo(host, None)
         except Exception:
             return False
+
+        for info in infos:
+            ip = ipaddress.ip_address(info[4][0].split("%")[0])
+            if not ip.is_global:
+                return True
+        return False
 
     except Exception as e:
         logger.warning(f"Private IP check failed: {str(e)}")
@@ -96,9 +103,11 @@ async def scan_url(url: str) -> dict:
         logger.info(f"[{request_id}] Normalized URL: {url}")
 
         parsed = urlparse(url)
-        domain = parsed.netloc
+        domain = parsed.hostname or ""
 
-        if not validate_domain(domain):
+        # hostname drops userinfo and port, so "a.com@b.com" and "b.com:8443"
+        # are validated on the real host; IP literals are valid targets too.
+        if not (is_ip_address(url) or validate_domain(domain)):
             logger.warning(f"[{request_id}] Invalid domain format")
 
             return {
@@ -119,7 +128,7 @@ async def scan_url(url: str) -> dict:
         # --------------------------------------------------
         # BLOCK PRIVATE IP
         # --------------------------------------------------
-        if is_private_ip(url):
+        if await asyncio.to_thread(is_private_ip, url):
             logger.warning(f"[{request_id}] Private IP blocked: {domain}")
 
             return {
@@ -145,7 +154,9 @@ async def scan_url(url: str) -> dict:
         # STEP 2 — STATIC ANALYSIS
         # --------------------------------------------------
         logger.info(f"[{request_id}] Running static analysis")
-        static_results = run_static_analysis(url)
+        # Static checks do blocking network I/O (TLS, WHOIS, HTTP); keep
+        # them off the event loop so one scan does not stall the server.
+        static_results = await asyncio.to_thread(run_static_analysis, url)
 
         # --------------------------------------------------
         # STEP 3 — RISK SCORING
@@ -216,6 +227,13 @@ async def run_dynamic_scan(url: str) -> dict:
     Runs dynamic sandbox only.
     Returns dynamic analysis report.
     """
+    if await asyncio.to_thread(is_private_ip, url):
+        logger.warning(f"Dynamic scan blocked for non-public target: {url}")
+        return {
+            "url": url,
+            "error": "Private IP addresses (e.g., 192.168.x.x, 10.x.x.x) cannot be scanned by SURL.",
+        }
+
     dynamic_results = await run_dynamic_analysis(url)
 
     return {

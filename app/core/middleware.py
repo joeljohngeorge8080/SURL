@@ -35,13 +35,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return request.client.host if request.client else "unknown"
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        if self._rpm == 0:
+        # Only the scan endpoints (all POST) are expensive; counting page,
+        # static-asset and screenshot GETs would 429 normal browsing.
+        if self._rpm == 0 or request.method != "POST":
             return await call_next(request)
 
         ip_hash = self._hash_ip(self._client_ip(request))
         now = time.monotonic()
 
-        # Prune expired entries
+        # Prune expired entries; drop IPs whose window is empty so the
+        # table does not grow without bound.
+        for key in [k for k, hits in self._hits.items() if k != ip_hash and (not hits or now - hits[-1] >= self._window)]:
+            del self._hits[key]
         self._hits[ip_hash] = [
             t for t in self._hits[ip_hash] if now - t < self._window
         ]

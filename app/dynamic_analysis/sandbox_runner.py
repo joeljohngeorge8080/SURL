@@ -16,6 +16,52 @@ SCREENSHOT_DIR = "screenshots"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 
+def aggregate_js_findings(
+    js_sources: list,
+    credential_analysis: dict,
+    external_post_detected: bool,
+) -> dict:
+    """Merge per-script JS findings into one page-level verdict."""
+
+    combined = {
+        "high_risk": [],
+        "medium_risk": [],
+        "credential_related": [],
+    }
+
+    for js_code in js_sources:
+        js_result = analyze_javascript(
+            js_code,
+            credential_analysis=credential_analysis,
+            external_post_detected=external_post_detected,
+        )
+        for key, values in combined.items():
+            values.extend(js_result.get(key, []))
+
+    combined = {key: list(set(values)) for key, values in combined.items()}
+
+    # Credential-style script behavior on a page with no password field is
+    # downgraded to medium risk — but only when such behavior was actually seen.
+    if (
+        combined["credential_related"]
+        and not credential_analysis.get("credential_fields_detected", False)
+    ):
+        combined["credential_related"] = []
+        for flag in ("credential_behavior_without_password_fields", "credential_like_script_behavior"):
+            if flag not in combined["medium_risk"]:
+                combined["medium_risk"].append(flag)
+
+    if combined["high_risk"]:
+        summary = "High-risk JavaScript patterns detected."
+    elif combined["medium_risk"]:
+        summary = "Moderate dynamic behavior observed."
+    else:
+        summary = "No suspicious script patterns detected."
+
+    combined["summary"] = summary
+    return combined
+
+
 async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
     results = {
@@ -140,60 +186,11 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             await asyncio.sleep(1)
             preliminary_exfiltration = analyze_post_requests(url, network_requests)
 
-            combined_js_analysis = {
-                "high_risk": [],
-                "medium_risk": [],
-                "credential_related": [],
-            }
-
-            for js_code in collected_js:
-                js_result = analyze_javascript(
-                    js_code,
-                    credential_analysis=credential_analysis,
-                    external_post_detected=preliminary_exfiltration.get(
-                        "external_post_detected", False
-                    ),
-                )
-                combined_js_analysis["high_risk"].extend(
-                    js_result.get("high_risk", [])
-                )
-                combined_js_analysis["medium_risk"].extend(
-                    js_result.get("medium_risk", [])
-                )
-                combined_js_analysis["credential_related"].extend(
-                    js_result.get("credential_related", [])
-                )
-
-            for key in combined_js_analysis:
-                combined_js_analysis[key] = list(set(combined_js_analysis[key]))
-
-            if (
-                combined_js_analysis["credential_related"]
-                and not credential_analysis.get("credential_fields_detected", False)
-            ):
-                combined_js_analysis["medium_risk"].append(
-                    "credential_behavior_without_password_fields"
-                )
-                combined_js_analysis["medium_risk"] = list(
-                    set(combined_js_analysis["medium_risk"])
-                )
-
-            if not credential_analysis.get("credential_fields_detected", False):
-                if combined_js_analysis.get("credential_related"):
-                    combined_js_analysis["credential_related"] = []
-                if "credential_like_script_behavior" not in combined_js_analysis["medium_risk"]:
-                    combined_js_analysis["medium_risk"].append(
-                        "credential_like_script_behavior"
-                    )
-
-            if combined_js_analysis["high_risk"]:
-                summary = "High-risk JavaScript patterns detected."
-            elif combined_js_analysis["medium_risk"]:
-                summary = "Moderate dynamic behavior observed."
-            else:
-                summary = "No suspicious script patterns detected."
-
-            combined_js_analysis["summary"] = summary
+            combined_js_analysis = aggregate_js_findings(
+                collected_js,
+                credential_analysis,
+                preliminary_exfiltration.get("external_post_detected", False),
+            )
             results["javascript_intelligence"] = combined_js_analysis
 
             # ── Network exfiltration ──────────────────────────────────────

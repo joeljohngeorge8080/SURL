@@ -56,7 +56,10 @@ def whois_check(url):
             creation_date = creation_date[0]
 
         if isinstance(creation_date, datetime):
-            age_days = (datetime.now() - creation_date).days
+            # Some registries return tz-aware dates; subtracting from a naive
+            # now() would raise and silently drop the domain age.
+            now = datetime.now(creation_date.tzinfo) if creation_date.tzinfo else datetime.now()
+            age_days = (now - creation_date).days
             signals["domain_age_days"] = age_days
 
             if age_days < 30:
