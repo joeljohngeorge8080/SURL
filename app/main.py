@@ -38,6 +38,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     RateLimitMiddleware,
     requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
+    trust_proxy_headers=settings.TRUST_PROXY_HEADERS,
 )
 
 # 3. CORS

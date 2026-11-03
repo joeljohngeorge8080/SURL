@@ -16,8 +16,15 @@ class Settings(BaseSettings):
     # Port used by docker-compose on the host side (not used by the app itself)
     API_PORT: int = 8000
 
-    # Comma-separated list of allowed CORS origins.
+    # Comma-separated list of allowed CORS origins. Empty means no cross-origin
+    # access (the bundled UI is served same-origin and needs none). Use "*"
+    # explicitly only if you really want any origin.
     CORS_ORIGINS: str = ""
+
+    # Honour X-Forwarded-For for the rate limiter. Enable ONLY behind a trusted
+    # reverse proxy that overwrites the header; otherwise clients can spoof it
+    # to dodge the limit.
+    TRUST_PROXY_HEADERS: bool = False
 
     # ── Rate Limiting ──────────────────────────────────────────────────────
     RATE_LIMIT_PER_MINUTE: int = Field(default=30, ge=0)
@@ -42,9 +49,9 @@ class Settings(BaseSettings):
     # ── Computed helpers ───────────────────────────────────────────────────
     @property
     def cors_origin_list(self) -> List[str]:
-        """Return CORS_ORIGINS as a Python list, or ['*'] if unset/empty."""
+        """Return CORS_ORIGINS as a Python list; empty list (deny) if unset."""
         if not self.CORS_ORIGINS or self.CORS_ORIGINS.strip() == "":
-            return ["*"]
+            return []
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
 

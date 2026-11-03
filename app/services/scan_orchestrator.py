@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import time
 import uuid
@@ -112,7 +112,7 @@ async def scan_url(url: str) -> dict:
 
             return {
                 "url": url,
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "engine_version": ENGINE_VERSION,
                 "risk_score": 0,
                 "severity": "Low",
@@ -133,7 +133,7 @@ async def scan_url(url: str) -> dict:
 
             return {
                 "url": url,
-                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "engine_version": ENGINE_VERSION,
                 "risk_score": 0,
                 "severity": "Low",
@@ -181,7 +181,7 @@ async def scan_url(url: str) -> dict:
         # --------------------------------------------------
         final_report = {
             "url": url,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "engine_version": ENGINE_VERSION,
 
             "risk_score": score_result.get("risk_score", 0),

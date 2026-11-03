@@ -245,3 +245,34 @@ class TestRateLimiter:
             assert (await client.post("/")).status_code == 200
             assert (await client.post("/")).status_code == 200
             assert (await client.post("/")).status_code == 429
+
+    async def test_spoofed_forwarded_for_does_not_bypass_limit(self):
+        from app.core.middleware import RateLimitMiddleware
+
+        async def ok(request):
+            return PlainTextResponse("ok")
+
+        inner = Starlette(routes=[Route("/", ok, methods=["POST"])])
+        limited = RateLimitMiddleware(inner, requests_per_minute=2)
+
+        async with AsyncClient(transport=ASGITransport(app=limited), base_url="http://test") as client:
+            codes = [
+                (await client.post("/", headers={"X-Forwarded-For": f"203.0.113.{i}"})).status_code
+                for i in range(3)
+            ]
+        assert codes == [200, 200, 429]
+
+    async def test_forwarded_for_honoured_when_proxy_trusted(self):
+        from app.core.middleware import RateLimitMiddleware
+
+        async def ok(request):
+            return PlainTextResponse("ok")
+
+        inner = Starlette(routes=[Route("/", ok, methods=["POST"])])
+        limited = RateLimitMiddleware(inner, requests_per_minute=1, trust_proxy_headers=True)
+
+        async with AsyncClient(transport=ASGITransport(app=limited), base_url="http://test") as client:
+            a = await client.post("/", headers={"X-Forwarded-For": "203.0.113.1"})
+            b = await client.post("/", headers={"X-Forwarded-For": "203.0.113.2"})
+            c = await client.post("/", headers={"X-Forwarded-For": "203.0.113.1"})
+        assert (a.status_code, b.status_code, c.status_code) == (200, 200, 429)

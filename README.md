@@ -73,7 +73,9 @@ All configuration lives in `.env`. Copy `.env.example` to get started.
 | `URLHAUS_API_KEY` | Optional | URLhaus API key |
 | `DATABASE_URL` | Optional | PostgreSQL connection string |
 | `RATE_LIMIT_PER_MINUTE` | No | Max requests per minute per IP (default `30`, `0` to disable) |
-| `CORS_ORIGINS` | No | Comma-separated allowed origins. Defaults to `*` if unset |
+| `CORS_ORIGINS` | No | Comma-separated allowed origins. Empty/unset = no cross-origin access (the bundled UI is same-origin). `*` allows any origin |
+| `TRUST_PROXY_HEADERS` | No | Default `False`. Set `True` only behind a trusted reverse proxy that overwrites `X-Forwarded-For`; otherwise the rate limiter would see every client as the proxy |
+| `WEB_CONCURRENCY` | No | Gunicorn workers (image default `1`). The rate limiter is in-process, so N workers allow N× the limit |
 | `API_PORT` | No | Host port for docker-compose (default `8000`) |
 | `S3_ENDPOINT_URL` | Optional | MinIO / S3 endpoint for screenshot uploads |
 | `S3_ACCESS_KEY` | Optional | S3 access key |
@@ -102,6 +104,14 @@ docker compose down
 ```
 
 The image is built in two stages — a builder stage that compiles dependencies, and a slim runtime stage. The container runs as a non-root user (`appuser`).
+
+---
+
+## Production hardening
+
+- **Egress:** the sandbox browser can reach whatever its container can. After `docker compose up`, run `sudo scripts/egress_firewall.sh` on the host to block the stack (`172.28.0.0/24`) from private, loopback, link-local and cloud-metadata ranges. Undo with `... remove`.
+- **Rate limiting** is in-memory and per worker. Keep `WEB_CONCURRENCY=1` per replica and, if you run replicas, also limit at the proxy/load balancer.
+- **Reverse proxy:** set `TRUST_PROXY_HEADERS=True` and `CORS_ORIGINS` explicitly.
 
 ---
 

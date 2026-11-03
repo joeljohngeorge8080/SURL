@@ -16,9 +16,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     Only active when settings.RATE_LIMIT_PER_MINUTE > 0.
     """
 
-    def __init__(self, app, requests_per_minute: int = 30):
+    def __init__(
+        self,
+        app,
+        requests_per_minute: int = 30,
+        trust_proxy_headers: bool = False,
+    ):
         super().__init__(app)
         self._rpm = requests_per_minute
+        self._trust_proxy = trust_proxy_headers
         self._window = 60  # seconds
         # {ip_hash: [timestamp, ...]}
         self._hits: dict[str, list[float]] = defaultdict(list)
@@ -29,7 +35,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return hashlib.sha256(ip.encode()).hexdigest()[:16]
 
     def _client_ip(self, request: Request) -> str:
-        forwarded = request.headers.get("X-Forwarded-For")
+        forwarded = (
+            request.headers.get("X-Forwarded-For") if self._trust_proxy else None
+        )
         if forwarded:
             return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"

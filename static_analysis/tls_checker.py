@@ -1,6 +1,6 @@
 import socket
 import ssl
-from datetime import datetime
+from datetime import datetime, timezone
 
 # OpenSSL X509_V_ERR_* codes
 SELF_SIGNED_VERIFY_CODES = {18, 19}   # DEPTH_ZERO_SELF_SIGNED_CERT, SELF_SIGNED_CERT_IN_CHAIN
@@ -38,7 +38,7 @@ def check_tls_certificate(domain: str) -> dict:
 
                 result["expiry_date"] = expiry_date.isoformat()
                 result["days_remaining"] = (
-                    expiry_date - datetime.utcnow()
+                    expiry_date - datetime.now(timezone.utc).replace(tzinfo=None)
                 ).days
 
     except ssl.SSLCertVerificationError as e:
