@@ -109,7 +109,7 @@ The image is built in two stages — a builder stage that compiles dependencies,
 
 ## Production hardening
 
-- **Egress:** the sandbox browser can reach whatever its container can. After `docker compose up`, run `sudo scripts/egress_firewall.sh` on the host to block the stack (`172.28.0.0/24`) from private, loopback, link-local and cloud-metadata ranges. Undo with `... remove`.
+- **Egress:** the sandbox browser can reach whatever its container can. After `docker compose up`, run `sudo scripts/egress_firewall.sh` on the host to block the stack (`172.30.0.0/24`) from private, loopback, link-local and cloud-metadata ranges. Undo with `... remove`.
 - **Rate limiting** is in-memory and per worker. Keep `WEB_CONCURRENCY=1` per replica and, if you run replicas, also limit at the proxy/load balancer.
 - **Reverse proxy:** set `TRUST_PROXY_HEADERS=True` and `CORS_ORIGINS` explicitly.
 

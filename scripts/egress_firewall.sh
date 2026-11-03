@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Block the SURL container (docker-compose network surl_net, 172.28.0.0/24)
+# Block the SURL container (docker-compose network surl_net, 172.30.0.0/24)
 # from reaching private, loopback, link-local and cloud-metadata addresses.
 # Defence in depth for the Chromium sandbox: the app already refuses private
 # targets, but a redirect/DNS-rebind bug must not reach internal services.
@@ -9,7 +9,7 @@
 # across reboots; persist with iptables-persistent or a systemd unit if needed.
 set -euo pipefail
 
-SUBNET="${SURL_SUBNET:-172.28.0.0/24}"
+SUBNET="${SURL_SUBNET:-172.30.0.0/24}"
 BLOCKED=(
   10.0.0.0/8 172.16.0.0/12 192.168.0.0/16   # RFC1918
   127.0.0.0/8 169.254.0.0/16                # loopback, link-local (incl. 169.254.169.254)
@@ -25,4 +25,5 @@ for dst in "${BLOCKED[@]}"; do
     *) echo "usage: $0 [apply|remove]" >&2; exit 2 ;;
   esac
 done
-echo "egress rules ${action}d for ${SUBNET}"
+case "$action" in apply) verb=applied ;; *) verb=removed ;; esac
+echo "egress rules ${verb} for ${SUBNET}"
