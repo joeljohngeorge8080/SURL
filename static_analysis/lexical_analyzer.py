@@ -32,8 +32,9 @@ def lexical_analysis(url):
         )
     )
 
-    # 6. Multiple subdomains (3 or more dots before TLD)
-    signals["multiple_subdomains"] = bool(
+    # 6. Multiple subdomains (3 or more dots before TLD) — not for IP
+    #    literals, whose dots would otherwise always match.
+    signals["multiple_subdomains"] = not signals["ip_based_url"] and bool(
         re.search(r"https?://([a-zA-Z0-9-]+\.){3,}", url)
     )
 

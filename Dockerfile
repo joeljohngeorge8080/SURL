@@ -84,12 +84,16 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
+# One worker by default: the rate limiter keeps its counters in process memory,
+# so N workers would allow N x the configured limit. Override with
+# WEB_CONCURRENCY only if you enforce limits elsewhere (e.g. at the proxy).
+ENV WEB_CONCURRENCY=1
+
 EXPOSE 8000
 
 # Gunicorn + UvicornWorker for production
 CMD ["gunicorn", "app.main:app", \
     "-k", "uvicorn.workers.UvicornWorker", \
-    "--workers", "2", \
     "--bind", "0.0.0.0:8000", \
     "--timeout", "120", \
     "--access-logfile", "-", \

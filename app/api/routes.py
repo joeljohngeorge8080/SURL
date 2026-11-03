@@ -2,14 +2,15 @@ from fastapi import APIRouter, Request, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from app.api.schemas import ScanRequest, ScanResponse
-from app.services.scan_orchestrator import scan_url, run_dynamic_scan
+from app.services.scan_orchestrator import scan_url, run_dynamic_scan, is_private_ip
 from static_analysis.image_url_extractor import extract_text_from_image
 from static_analysis.static_runner import run_static_analysis
 from scoring_engine.score_calculator import calculate_risk_score
+import asyncio
 import re
-import uuid
 import shutil
 import os
+import tempfile
 
 router = APIRouter()
 
@@ -47,15 +48,15 @@ async def scan_dynamic(request: ScanRequest):
 @router.post("/scan-image")
 async def scan_image(file: UploadFile = File(...)):
 
-    temp_path = f"temp_{uuid.uuid4()}.png"
+    fd, temp_path = tempfile.mkstemp(suffix=".png")
 
     try:
         # Save file
-        with open(temp_path, "wb") as buffer:
+        with os.fdopen(fd, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # OCR
-        text = extract_text_from_image(temp_path)
+        # OCR (blocking — run off the event loop)
+        text = await asyncio.to_thread(extract_text_from_image, temp_path)
 
         # Extract only http/https URLs
         urls = re.findall(r"https?://[^\s]+", text)
@@ -70,8 +71,18 @@ async def scan_image(file: UploadFile = File(...)):
         preview_results = []
 
         for url in urls:
+            # OCR'd URLs are attacker-controlled: never fetch internal targets
+            if await asyncio.to_thread(is_private_ip, url):
+                preview_results.append({
+                    "url": url,
+                    "preview_score": 0,
+                    "preview_severity": "Blocked",
+                    "preview_flags": ["Private IP addresses cannot be scanned"]
+                })
+                continue
+
             try:
-                static_data = run_static_analysis(url)
+                static_data = await asyncio.to_thread(run_static_analysis, url)
                 score_data = calculate_risk_score(static_data)
 
                 preview_results.append({
@@ -98,7 +109,9 @@ async def scan_image(file: UploadFile = File(...)):
             os.remove(temp_path)
 
 
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(
+    directory=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
+)
 
 
 

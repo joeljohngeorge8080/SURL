@@ -1174,6 +1174,13 @@
             }
         });
 
+        // OCR text is attacker-controlled; escape before putting it in HTML
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, c => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            })[c]);
+        }
+
         // Render URL Cards
         function renderUrlCards(data) {
 
@@ -1184,33 +1191,38 @@
 
                 const severityColor =
                     item.preview_severity === "High" ? "danger" :
-                        item.preview_severity === "Medium" ? "warning" : "success";
+                        (item.preview_severity === "Medium" || item.preview_severity === "Medium-High") ? "warning" :
+                            item.preview_severity === "Blocked" ? "secondary" : "success";
 
                 container.innerHTML += `
         <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
             <div class="card bg-dark border-${severityColor}" style="height: 100%;">
                 <div class="card-body d-flex flex-column p-2">
                     <h6 class="text-${severityColor} mb-1" style="font-size: 0.8rem;">
-                        ${item.preview_severity} (${item.preview_score})
+                        ${escapeHtml(item.preview_severity)} (${escapeHtml(item.preview_score)})
                     </h6>
                     <div class="mb-1">
                         <small class="text-muted" style="font-size: 0.65rem;">URL:</small>
-                        <p class="small text-break mb-0" style="color: var(--accent); font-size: 0.68rem; line-height: 1.2;">${item.url}</p>
+                        <p class="small text-break mb-0" style="color: var(--accent); font-size: 0.68rem; line-height: 1.2;">${escapeHtml(item.url)}</p>
                     </div>
                     <div class="mb-1 flex-grow-1">
                         <small class="text-muted" style="font-size: 0.65rem;">Flags:</small>
                         <ul class="mb-0" style="font-size: 0.65rem; padding-left: 1rem; line-height: 1.3;">
-                            ${item.preview_flags.map(f => `<li style="margin-bottom: 1px;">${f}</li>`).join("")}
+                            ${item.preview_flags.map(f => `<li style="margin-bottom: 1px;">${escapeHtml(f)}</li>`).join("")}
                         </ul>
                     </div>
-                    <button type="button" class="btn btn-outline-light btn-sm w-100 mt-auto" style="font-size: 0.7rem; padding: 0.25rem 0.4rem;"
-                        onclick="scanSelected('${item.url}')">
+                    <button type="button" class="btn btn-outline-light btn-sm w-100 mt-auto scan-selected-btn" style="font-size: 0.7rem; padding: 0.25rem 0.4rem;"
+                        data-url="${escapeHtml(item.url)}" ${item.preview_severity === "Blocked" ? "disabled" : ""}>
                         <i class="fa-solid fa-magnifying-glass me-1"></i>Scan
                     </button>
                 </div>
             </div>
         </div>
         `;
+            });
+
+            container.querySelectorAll(".scan-selected-btn").forEach(btn => {
+                btn.addEventListener("click", () => scanSelected(btn.dataset.url));
             });
         }
 

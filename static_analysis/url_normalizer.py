@@ -1,13 +1,17 @@
 import re
+from urllib.parse import urlsplit, urlunsplit
 
 
 def normalize_url(url: str) -> str:
-    url = url.strip().lower()
+    url = url.strip()
 
-    if not url.startswith(("http://", "https://")):
+    if not url.lower().startswith(("http://", "https://")):
         url = "https://" + url
 
-    return url
+    # Only scheme and host are case-insensitive; path and query must keep
+    # their case or the fetched page is not the one the user submitted.
+    parts = urlsplit(url)
+    return urlunsplit(parts._replace(scheme=parts.scheme.lower(), netloc=parts.netloc.lower()))
 
 
 def validate_domain(url: str) -> bool:

@@ -6,7 +6,7 @@
 # ── Web Framework ────────────────────────────────────────────
 fastapi==0.129.0
 uvicorn==0.41.0
-gunicorn>=22.0.0            # For production: gunicorn -k uvicorn.workers.UvicornWorker
+gunicorn==26.2.0            # For production: gunicorn -k uvicorn.workers.UvicornWorker
 starlette==0.52.1
 Jinja2==3.1.6
 python-multipart==0.0.22    # Required for UploadFile / multipart form support

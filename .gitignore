@@ -125,3 +125,7 @@ screenshots/*
 !screenshots/.gitkeep
 logs/*
 !logs/.gitkeep
+# Local scratch / tooling output
+*.bak
+.j
+graphify-out/

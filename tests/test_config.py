@@ -14,9 +14,16 @@ class TestSettings:
         s = Settings()
         assert s.RATE_LIMIT_PER_MINUTE == 30
 
-    def test_cors_origin_list_returns_star_when_unset(self):
+    def test_cors_origin_list_denies_all_when_unset(self):
         s = Settings(CORS_ORIGINS="")
+        assert s.cors_origin_list == []
+
+    def test_cors_origin_list_star_only_when_explicit(self):
+        s = Settings(CORS_ORIGINS="*")
         assert s.cors_origin_list == ["*"]
+
+    def test_proxy_headers_untrusted_by_default(self):
+        assert Settings().TRUST_PROXY_HEADERS is False
 
     def test_cors_origin_list_parses_correctly(self):
         s = Settings(CORS_ORIGINS="https://app.example.com,https://admin.example.com")

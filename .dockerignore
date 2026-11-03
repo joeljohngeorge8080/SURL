@@ -26,6 +26,10 @@ htmlcov/
 .env.*
 !.env.example
 
+# Backup / scratch files
+*.bak
+**/*.bak
+
 # IDE / editor
 .vscode/
 .idea/
@@ -39,7 +43,6 @@ README.md
 *.jpeg
 
 # CI configs not needed in image
-ci/
 .github/
 
 # Misc development dirs

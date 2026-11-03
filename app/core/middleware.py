@@ -16,9 +16,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     Only active when settings.RATE_LIMIT_PER_MINUTE > 0.
     """
 
-    def __init__(self, app, requests_per_minute: int = 30):
+    def __init__(
+        self,
+        app,
+        requests_per_minute: int = 30,
+        trust_proxy_headers: bool = False,
+    ):
         super().__init__(app)
         self._rpm = requests_per_minute
+        self._trust_proxy = trust_proxy_headers
         self._window = 60  # seconds
         # {ip_hash: [timestamp, ...]}
         self._hits: dict[str, list[float]] = defaultdict(list)
@@ -29,19 +35,26 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return hashlib.sha256(ip.encode()).hexdigest()[:16]
 
     def _client_ip(self, request: Request) -> str:
-        forwarded = request.headers.get("X-Forwarded-For")
+        forwarded = (
+            request.headers.get("X-Forwarded-For") if self._trust_proxy else None
+        )
         if forwarded:
             return forwarded.split(",")[0].strip()
         return request.client.host if request.client else "unknown"
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        if self._rpm == 0:
+        # Only the scan endpoints (all POST) are expensive; counting page,
+        # static-asset and screenshot GETs would 429 normal browsing.
+        if self._rpm == 0 or request.method != "POST":
             return await call_next(request)
 
         ip_hash = self._hash_ip(self._client_ip(request))
         now = time.monotonic()
 
-        # Prune expired entries
+        # Prune expired entries; drop IPs whose window is empty so the
+        # table does not grow without bound.
+        for key in [k for k, hits in self._hits.items() if k != ip_hash and (not hits or now - hits[-1] >= self._window)]:
+            del self._hits[key]
         self._hits[ip_hash] = [
             t for t in self._hits[ip_hash] if now - t < self._window
         ]

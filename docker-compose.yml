@@ -26,6 +26,16 @@ services:
     read_only: false
     tmpfs:
       - /tmp:size=128m
+    networks:
+      - surl_net
+
+networks:
+  # Fixed subnet so scripts/egress_firewall.sh can target this stack's traffic.
+  surl_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
 
 volumes:
   screenshots:
