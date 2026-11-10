@@ -62,7 +62,32 @@ def aggregate_js_findings(
     return combined
 
 
+# Each Chromium instance needs roughly 300-500 MB. On a small host (e.g. a 1 GB
+# free-tier EC2 instance) running them in parallel gets the container OOM-killed,
+# so scans queue behind this gate. Raise MAX_CONCURRENT_BROWSERS on bigger hosts.
+MAX_CONCURRENT_BROWSERS = max(1, int(os.getenv("MAX_CONCURRENT_BROWSERS", "2")))
+BROWSER_QUEUE_TIMEOUT = float(os.getenv("BROWSER_QUEUE_TIMEOUT", "60"))
+_browser_gate = asyncio.Semaphore(MAX_CONCURRENT_BROWSERS)
+
+
 async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
+    """Run the sandbox, queueing behind the concurrency gate."""
+    try:
+        await asyncio.wait_for(_browser_gate.acquire(), timeout=BROWSER_QUEUE_TIMEOUT)
+    except asyncio.TimeoutError:
+        return {
+            "classification": "Busy",
+            "confidence": "Low",
+            "engine_error": {"type": "SandboxBusy"},
+            "correlation_signals": ["Sandbox is at capacity; retry shortly."],
+        }
+    try:
+        return await _run_dynamic_analysis(url, static_results)
+    finally:
+        _browser_gate.release()
+
+
+async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
     results = {
         "redirect_chain": [],
@@ -88,7 +113,7 @@ async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
             browser = await p.chromium.launch(
                 headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
             )
 
             context = await browser.new_context(

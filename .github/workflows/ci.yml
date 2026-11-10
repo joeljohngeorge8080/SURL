@@ -2,9 +2,9 @@ name: SURL CI/CD
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, deploy]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, deploy]
 
 env:
   PYTHON_VERSION: "3.12"
@@ -26,7 +26,8 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install lint tools
-        run: pip install ruff
+        # Pinned: an unpinned ruff pulls new default rules and breaks CI without a code change.
+        run: pip install ruff==0.8.6
 
       - name: Run Ruff
         run: ruff check . --ignore=E501
@@ -82,7 +83,7 @@ jobs:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/deploy')
     permissions:
       contents: read
       packages: write
@@ -103,14 +104,40 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build image (local, for smoke test)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          load: true
+          tags: surl-smoke:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test (container starts and /health answers)
+        run: |
+          docker run -d --name smoke -p 8000:8000 surl-smoke:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8000/health && exit 0
+            sleep 2
+          done
+          docker logs smoke
+          exit 1
+
+      # The deploy branch publishes :deploy, which the EC2 host pulls and runs.
+      # main/master keep publishing :latest. Every push also gets a :<sha> tag.
+      - name: Compute tags
+        run: |
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          BASE=ghcr.io/$OWNER/${{ env.IMAGE_NAME }}
+          if [ "${{ github.ref_name }}" = "deploy" ]; then MAIN=deploy; else MAIN=latest; fi
+          echo "TAGS=$BASE:$MAIN,$BASE:${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.TAGS }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max

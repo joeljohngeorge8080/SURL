@@ -63,10 +63,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Install Playwright browsers and dependencies
+# --only-shell installs just the headless Chromium build (smaller, lighter on RAM);
+# the sandbox only ever launches headless.
 RUN mkdir -p /ms-playwright && \
-    playwright install chromium && \
+    playwright install --only-shell chromium && \
     playwright install-deps chromium && \
-    chmod -R 777 /ms-playwright
+    chmod -R a+rX /ms-playwright
 # Copy application source
 COPY app/            ./app/
 COPY static_analysis/ ./static_analysis/

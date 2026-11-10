@@ -1,0 +1,10 @@
+[Unit]
+Description=SURL pull-based deploy
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Environment=SURL_DIR=/home/ubuntu/SURL
+ExecStart=/home/ubuntu/SURL/deploy/pull-deploy.sh

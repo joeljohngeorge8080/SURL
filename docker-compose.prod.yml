@@ -1,0 +1,55 @@
+# Production stack for a small EC2 host (1 GB RAM, free tier).
+# The image is built by CI and pulled from GHCR; nothing is built on the host.
+#   docker compose -f docker-compose.prod.yml up -d
+services:
+  api:
+    image: ghcr.io/joeljohngeorge8080/surl:${SURL_TAG:-deploy}
+    container_name: surl_api
+    restart: unless-stopped
+    ports:
+      # Loopback only: nginx on the host is the single public entry point.
+      - "127.0.0.1:${API_PORT:-8001}:8000"
+    env_file:
+      - .env
+    environment:
+      - DEBUG=False
+      - WEB_CONCURRENCY=1          # rate limiter is per-process
+      - MAX_CONCURRENT_BROWSERS=1  # one Chromium at a time on 1 GB
+    # Keep Chromium from taking the whole host down; spill into the 2 GB swapfile.
+    mem_limit: 750m
+    memswap_limit: 2g
+    pids_limit: 256
+    volumes:
+      - screenshots:/app/screenshots
+      - logs:/app/logs
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - surl_net
+
+networks:
+  # Fixed subnet so scripts/egress_firewall.sh can target this stack's traffic.
+  surl_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  screenshots:
+  logs:

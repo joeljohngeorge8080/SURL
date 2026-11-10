@@ -1,0 +1,13 @@
+[Unit]
+Description=SURL sandbox egress firewall (block private/metadata ranges)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/ubuntu/SURL/scripts/egress_firewall.sh apply
+ExecStop=/home/ubuntu/SURL/scripts/egress_firewall.sh remove
+
+[Install]
+WantedBy=multi-user.target
