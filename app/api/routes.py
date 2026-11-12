@@ -1,18 +1,27 @@
 from fastapi import APIRouter, Request, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from app.api.schemas import ScanRequest, ScanResponse
 from app.services.scan_orchestrator import scan_url, run_dynamic_scan, is_private_ip
-from static_analysis.image_url_extractor import extract_text_from_image
+from static_analysis.image_url_extractor import (
+    OcrUnavailableError,
+    UnreadableImageError,
+    extract_text_from_image,
+    extract_urls,
+)
+from app.core.logger import logger
 from static_analysis.static_runner import run_static_analysis
 from scoring_engine.score_calculator import calculate_risk_score
 import asyncio
-import re
 import shutil
 import os
 import tempfile
 
 router = APIRouter()
+
+# Each preview runs a full static scan (TLS + HTTP + WHOIS); more than a few would
+# outrun the reverse proxy's timeout.
+MAX_IMAGE_URLS = 5
 
 
 @router.post("/scan", response_model=ScanResponse)
@@ -56,16 +65,20 @@ async def scan_image(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
 
         # OCR (blocking — run off the event loop)
-        text = await asyncio.to_thread(extract_text_from_image, temp_path)
+        try:
+            text = await asyncio.to_thread(extract_text_from_image, temp_path)
+        except UnreadableImageError as e:
+            return JSONResponse(status_code=400, content={"error": str(e)})
+        except OcrUnavailableError as e:
+            logger.error(f"OCR unavailable: {e!r}")
+            return JSONResponse(status_code=503, content={"error": "Image scanning is temporarily unavailable."})
 
-        # Extract only http/https URLs
-        urls = re.findall(r"https?://[^\s]+", text)
-
-        # Remove duplicates
-        urls = list(set(urls))
-
+        urls = extract_urls(text)
         if not urls:
             return {"error": "No valid http/https URL found in image."}
+
+        urls_truncated = len(urls) > MAX_IMAGE_URLS
+        urls = urls[:MAX_IMAGE_URLS]
 
         # Preview scan for each URL
         preview_results = []
@@ -101,7 +114,8 @@ async def scan_image(file: UploadFile = File(...)):
                 })
 
         return {
-            "detected_urls": preview_results
+            "detected_urls": preview_results,
+            "urls_truncated": urls_truncated,
         }
 
     finally:

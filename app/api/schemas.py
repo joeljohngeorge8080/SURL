@@ -9,7 +9,11 @@ class ScanRequest(BaseModel):
     @classmethod
     def url_must_be_http(cls, v: str) -> str:
         v = v.strip()
-        if not v.startswith(("http://", "https://")):
+        scheme, sep, rest = v.partition("://")
+        if sep and scheme.lower() in ("http", "https"):
+            # Lowercase only the scheme: "HTTPS://x" must not become "https://HTTPS://x".
+            v = f"{scheme.lower()}://{rest}"
+        else:
             v = f"https://{v}"
         if len(v) > 2048:
             raise ValueError("URL exceeds maximum allowed length of 2048 characters.")
