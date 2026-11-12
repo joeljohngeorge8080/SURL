@@ -276,3 +276,202 @@ class TestRateLimiter:
             b = await client.post("/", headers={"X-Forwarded-For": "203.0.113.2"})
             c = await client.post("/", headers={"X-Forwarded-For": "203.0.113.1"})
         assert (a.status_code, b.status_code, c.status_code) == (200, 200, 429)
+
+
+# ── Audit 2026-11-12: redirect SSRF, cert fallback, transport signals ─────
+
+class _FakeResponse:
+    def __init__(self, status=200, location=None, text="", url=""):
+        self.status_code = status
+        self.headers = {"Location": location} if location else {}
+        self.text = text
+        self.url = url
+        self.is_redirect = location is not None and status in (301, 302, 303, 307, 308)
+
+
+class TestHtmlScanRedirects:
+    def test_redirect_to_private_address_is_not_followed(self, monkeypatch):
+        from static_analysis import html_scanner
+
+        fetched = []
+
+        def fake_get(url, **kwargs):
+            fetched.append(url)
+            if url == "https://evil.example/":
+                return _FakeResponse(302, "http://169.254.169.254/latest/meta-data/")
+            return _FakeResponse(200, text="<html>secret</html>", url=url)
+
+        monkeypatch.setattr(html_scanner.requests, "get", fake_get)
+        monkeypatch.setattr(html_scanner, "is_private_ip", lambda url: "169.254." in url)
+
+        result = html_scanner.html_scan("https://evil.example/")
+        assert fetched == ["https://evil.example/"], "followed a redirect into a private address"
+        assert result["html_fetched"] is False
+        assert result["blocked_redirect"] is True
+
+    def test_public_redirect_is_followed_and_final_domain_used(self, monkeypatch):
+        from static_analysis import html_scanner
+
+        page = '<form action="https://www.example.com/login"><input type="password"></form>'
+
+        def fake_get(url, **kwargs):
+            if url == "https://example.com/":
+                return _FakeResponse(301, "https://www.example.com/")
+            return _FakeResponse(200, text=page, url=url)
+
+        monkeypatch.setattr(html_scanner.requests, "get", fake_get)
+        monkeypatch.setattr(html_scanner, "is_private_ip", lambda url: False)
+
+        result = html_scanner.html_scan("https://example.com/")
+        assert result["html_fetched"] is True
+        assert result["has_password_input"] is True
+        assert result["external_form_action"] is False
+
+    def test_form_posting_to_other_registered_domain_is_external(self, monkeypatch):
+        from static_analysis import html_scanner
+
+        page = '<form action="https://collector.evil.example/c"><input type="password"></form>'
+        monkeypatch.setattr(html_scanner.requests, "get",
+                            lambda url, **kw: _FakeResponse(200, text=page, url=url))
+        monkeypatch.setattr(html_scanner, "is_private_ip", lambda url: False)
+
+        assert html_scanner.html_scan("https://login.example.com/")["external_form_action"] is True
+
+    def test_bad_certificate_still_gets_html_analysis(self, monkeypatch):
+        import requests as real_requests
+        from static_analysis import html_scanner
+
+        calls = []
+
+        def fake_get(url, **kwargs):
+            calls.append(kwargs.get("verify", True))
+            if kwargs.get("verify", True):
+                raise real_requests.exceptions.SSLError("certificate verify failed")
+            return _FakeResponse(200, text='<form><input type="password"></form>', url=url)
+
+        monkeypatch.setattr(html_scanner.requests, "get", fake_get)
+        monkeypatch.setattr(html_scanner, "is_private_ip", lambda url: False)
+
+        result = html_scanner.html_scan("https://self-signed.example/")
+        assert calls == [True, False]
+        assert result["html_fetched"] is True
+        assert result["has_password_input"] is True
+
+
+class TestSchemeCase:
+    def test_uppercase_scheme_is_not_double_prefixed(self):
+        from app.api.schemas import ScanRequest
+
+        assert ScanRequest(url="HTTPS://Example.com/Path").url == "https://Example.com/Path"
+        assert ScanRequest(url="Http://x.example").url == "http://x.example"
+        assert ScanRequest(url="example.com").url == "https://example.com"
+
+
+class TestTransportSignals:
+    def test_dns_failure_is_structured(self, monkeypatch):
+        import socket
+        from static_analysis import tls_checker
+
+        def boom(*a, **k):
+            raise socket.gaierror(-2, "Name or service not known")
+
+        monkeypatch.setattr(tls_checker.socket, "create_connection", boom)
+        result = tls_checker.check_tls_certificate("nope.invalid")
+        assert result["dns_failed"] is True
+        assert result["timed_out"] is False
+
+    def test_timeout_is_structured(self, monkeypatch):
+        from static_analysis import tls_checker
+
+        def slow(*a, **k):
+            raise TimeoutError("timed out")
+
+        monkeypatch.setattr(tls_checker.socket, "create_connection", slow)
+        result = tls_checker.check_tls_certificate("slow.example")
+        assert result["timed_out"] is True
+        assert result["dns_failed"] is False
+
+    def test_dns_failure_reason_is_scored_and_explained(self):
+        from scoring_engine.score_calculator import calculate_risk_score
+        from scoring_engine.explanation import generate_explanation
+
+        static = {
+            "tls_analysis": {"https_supported": False, "certificate_valid": False, "dns_failed": True},
+            "html_analysis": {"html_fetched": False},
+            "whois_analysis": {"whois_found": False},
+        }
+        score = calculate_risk_score(static)
+        assert "Domain unreachable or DNS resolution failed" in score["reasons"]
+        explained = generate_explanation(static, score)
+        indicators = [d["indicator"] for d in explained["detailed_analysis"]]
+        assert "Domain unreachable or DNS resolution failed" in indicators
+
+
+class TestWhoisEmptyRecord:
+    def test_all_none_record_is_not_found(self, monkeypatch):
+        from static_analysis import whois_checker
+
+        class Empty:
+            registrar = None
+            creation_date = None
+            domain_name = None
+
+        monkeypatch.setattr(whois_checker.whois, "whois", lambda domain: Empty())
+        assert whois_checker.whois_check("example.com")["whois_found"] is False
+
+
+class TestBrandDetection:
+    @pytest.mark.parametrize("url", [
+        "https://login.paypa1.com/",
+        "https://paypal.evil.com/",
+        "https://user@paypa1.com/",
+        "https://secure-paypal.account-verify.co.uk/",
+    ])
+    def test_impersonation_is_flagged(self, url):
+        from static_analysis.brand_detector import brand_check
+        assert brand_check(url)["possible_impersonation"] is True, url
+
+    @pytest.mark.parametrize("url", [
+        "https://www.paypal.com/",
+        "https://paypal.com/x",
+        "https://example.com/",
+        "https://my-bucket.s3.amazonaws.com/index.html",
+        "https://ec2-1-2-3-4.compute-1.amazonaws.com/",
+    ])
+    def test_legitimate_is_not_flagged(self, url):
+        from static_analysis.brand_detector import brand_check
+        assert brand_check(url)["possible_impersonation"] is False, url
+
+
+class TestScanImageHardening:
+    async def test_non_image_upload_is_400_not_500(self):
+        from app.main import app
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/scan-image", files={"file": ("x.png", io.BytesIO(b"not an image"), "image/png")}
+            )
+        assert response.status_code == 400
+        assert "error" in response.json()
+
+    async def test_url_count_is_capped_and_ordered(self, monkeypatch):
+        from app.api import routes
+        from app.main import app
+
+        text = " ".join(f"https://site{i}.example/." for i in range(8))
+        monkeypatch.setattr(routes, "extract_text_from_image", lambda path: text)
+        monkeypatch.setattr(routes, "is_private_ip", lambda url: False)
+        scanned = []
+
+        def fake_static(url):
+            scanned.append(url)
+            return dict(FAKE_STATIC, url=url)
+
+        monkeypatch.setattr(routes, "run_static_analysis", fake_static)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/scan-image", files={"file": ("x.png", io.BytesIO(b"fake"), "image/png")}
+            )
+        assert response.status_code == 200
+        assert scanned == [f"https://site{i}.example/" for i in range(5)]
+        assert response.json()["urls_truncated"] is True
