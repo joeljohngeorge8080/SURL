@@ -3,7 +3,6 @@ import asyncio
 import time
 import uuid
 import ipaddress
-import socket
 from urllib.parse import urlparse
 
 from app.core.logger import logger
@@ -15,6 +14,7 @@ from scoring_engine.score_calculator import calculate_risk_score
 from scoring_engine.explanation import generate_explanation
 from scoring_engine.pbh_fingerprint import generate_pbh_fingerprint
 from static_analysis.url_normalizer import normalize_url, validate_domain
+from static_analysis.net_guard import is_private_ip
 
 
 ENGINE_VERSION = "1.0"
@@ -37,51 +37,8 @@ def is_ip_address(url: str) -> bool:
         return False
 
 
-# ==========================================================
-# PRIVATE IP DETECTION
-# ==========================================================
-def is_private_ip(url: str) -> bool:
-    """
-    Detect if the URL points at, or resolves to, a non-public IP.
-    Blocks anything that is not globally routable, e.g.:
-        10.x.x.x
-        172.16.x.x – 172.31.x.x
-        192.168.x.x
-        127.x.x.x / ::1
-        169.254.x.x  (cloud metadata)
-        0.0.0.0
-        localhost
-    """
-
-    try:
-        parsed = urlparse(url)
-        host = parsed.hostname
-
-        if not host:
-            return False
-
-        # Direct IP
-        try:
-            ip = ipaddress.ip_address(host)
-            return not ip.is_global
-        except ValueError:
-            pass  # Not an IP, continue
-
-        # DNS resolution — block if ANY resolved address is non-public
-        try:
-            infos = socket.getaddrinfo(host, None)
-        except Exception:
-            return False
-
-        for info in infos:
-            ip = ipaddress.ip_address(info[4][0].split("%")[0])
-            if not ip.is_global:
-                return True
-        return False
-
-    except Exception as e:
-        logger.warning(f"Private IP check failed: {str(e)}")
-        return False
+# Private-address guard lives in static_analysis.net_guard so the static and
+# dynamic analysers can share it without an import cycle; re-exported here.
 
 
 # ==========================================================

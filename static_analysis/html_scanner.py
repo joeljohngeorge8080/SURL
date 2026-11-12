@@ -15,10 +15,54 @@
 #     url_go(link)
 
     
-import requests
 import re
+import warnings
+from urllib.parse import urljoin, urlparse
+
+import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
+from urllib3.exceptions import InsecureRequestWarning
+
+from static_analysis.net_guard import is_private_ip, registered_domain
+
+MAX_REDIRECTS = 5
+FETCH_TIMEOUT = 5
+
+
+class BlockedRedirect(Exception):
+    """A redirect pointed at a non-public address or a non-HTTP scheme."""
+
+
+def _get(url):
+    """One hop, no automatic redirects. Falls back to verify=False on a bad
+    certificate: TLS validity is scored separately by tls_checker, and phishing
+    pages with broken certificates still need their HTML inspected."""
+    try:
+        return requests.get(url, timeout=FETCH_TIMEOUT, allow_redirects=False)
+    except requests.exceptions.SSLError:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", InsecureRequestWarning)
+            return requests.get(url, timeout=FETCH_TIMEOUT, allow_redirects=False, verify=False)
+
+
+def _fetch(url):
+    """Follow redirects by hand so every hop is checked against the SSRF guard
+    (the submitted URL is checked by the caller). Returns (response, final_url)."""
+    current = url
+    for _ in range(MAX_REDIRECTS + 1):
+        response = _get(current)
+        location = response.headers.get("Location") if response.is_redirect else None
+        if not location:
+            return response, current
+        nxt = urljoin(current, location)
+        if urlparse(nxt).scheme not in ("http", "https") or is_private_ip(nxt):
+            raise BlockedRedirect(nxt)
+        current = nxt
+    raise requests.exceptions.TooManyRedirects(f"more than {MAX_REDIRECTS} redirects")
+
+
+def _host(url):
+    return (urlparse(url).hostname or "").lower()
 
 
 def html_scan(url):
@@ -36,20 +80,26 @@ def html_scan(url):
         "hidden_inputs_present": False,
         "hidden_elements_present": False,
         "js_obfuscation_detected": False,
-        "external_script_loaded": False
+        "external_script_loaded": False,
+        "blocked_redirect": False,
     }
 
     # ---- Fetch HTML safely ----
     try:
-        response = requests.get(url, timeout=5)
+        response, final_url = _fetch(url)
         html = response.text
         signals["html_fetched"] = True
+    except BlockedRedirect:
+        signals["blocked_redirect"] = True
+        return signals
     except Exception:
         # Fail safely – no crash, no verdict
         return signals
 
     soup = BeautifulSoup(html, "html.parser")
-    page_domain = urlparse(url).netloc
+    # Compare registered domains of the page we actually landed on, so
+    # example.com -> www.example.com is not mistaken for an external target.
+    page_domain = registered_domain(_host(final_url))
 
     # ---- Form analysis ----
     forms = soup.find_all("form")
@@ -64,8 +114,8 @@ def html_scan(url):
         # Detect external form action
         action = form.get("action")
         if action:
-            action_domain = urlparse(action).netloc
-            if action_domain and action_domain != page_domain:
+            action_host = _host(urljoin(final_url, action))
+            if action_host and registered_domain(action_host) != page_domain:
                 signals["external_form_action"] = True
 
     # ---- Hidden inputs ----
@@ -91,8 +141,8 @@ def html_scan(url):
         # External script loading
         src = script.get("src")
         if src:
-            src_domain = urlparse(src).netloc
-            if src_domain and src_domain != page_domain:
+            src_host = _host(urljoin(final_url, src))
+            if src_host and registered_domain(src_host) != page_domain:
                 signals["external_script_loaded"] = True
     
 

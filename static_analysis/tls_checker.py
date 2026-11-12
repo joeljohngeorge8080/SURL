@@ -16,6 +16,8 @@ def check_tls_certificate(domain: str) -> dict:
         "days_remaining": None,
         "self_signed_cert": False,
         "domain_mismatch": False,
+        "dns_failed": False,
+        "timed_out": False,
         "error": None
     }
 
@@ -52,6 +54,15 @@ def check_tls_certificate(domain: str) -> dict:
             result["self_signed_cert"] = True
         elif e.verify_code == HOSTNAME_MISMATCH_VERIFY_CODE:
             result["domain_mismatch"] = True
+
+    except socket.gaierror as e:
+        # Name does not resolve: scored as "Domain unreachable or DNS resolution failed".
+        result["dns_failed"] = True
+        result["error"] = str(e)
+
+    except TimeoutError as e:  # socket.timeout is an alias since Python 3.10
+        result["timed_out"] = True
+        result["error"] = str(e)
 
     except Exception as e:
         result["error"] = str(e)

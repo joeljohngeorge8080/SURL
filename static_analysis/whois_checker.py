@@ -44,7 +44,13 @@ def whois_check(url):
             return signals
 
         w = whois.whois(domain)
-        signals["whois_found"] = True
+        # python-whois swallows socket errors and returns a record with every
+        # field None, so only count it as found when it carries real data.
+        signals["whois_found"] = any(
+            getattr(w, field, None) for field in ("domain_name", "registrar", "creation_date")
+        )
+        if not signals["whois_found"]:
+            return signals
 
         # Registrar
         signals["registrar"] = w.registrar

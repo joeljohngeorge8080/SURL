@@ -44,11 +44,6 @@ def calculate_risk_score(static_results):
         reasons.append("Invalid or expired TLS certificate")
         transport_indicators += 1
 
-    if tls.get("tls_supported") is False:
-        transport_score += 20
-        reasons.append("TLS not supported")
-        transport_indicators += 1
-
     if tls.get("self_signed_cert"):
         transport_score += 20
         reasons.append("Self-signed TLS certificate")
@@ -65,13 +60,13 @@ def calculate_risk_score(static_results):
         reasons.append("Website could not be fetched")
         transport_indicators += 1
 
-    # Check for connection-specific errors in reasons
-    if "Connection timed out" in str(static_results):
+    # Connection-specific failures, reported as structured flags by tls_checker
+    if tls.get("timed_out"):
         transport_score += 30
         reasons.append("Connection timed out")
         transport_indicators += 1
 
-    if "Domain unreachable or DNS resolution failed" in str(static_results):
+    if tls.get("dns_failed"):
         transport_score += 50
         reasons.append("Domain unreachable or DNS resolution failed")
         transport_indicators += 1

@@ -187,11 +187,25 @@ def generate_explanation(static_results, score_result):
                 "This may indicate a misconfigured server, inactive domain, "
                 "or infrastructure used in short-lived phishing campaigns."
             )
+            explanation_block["remediation_strategy"] = (
+                "Do not retry the link from emails or messages. If the site is expected to exist, "
+                "reach the organisation through a known, official address instead."
+            )
+            explanation_block["verification_strategy"] = (
+                "Query the domain with an independent DNS resolver (e.g. dig or nslookup) and check "
+                "whether it was recently registered or has been taken down."
+            )
         #for timeout
         elif "Connection timed out" in item:
             explanation_block["report_paragraph"] = (
                 "The server failed to respond within the configured timeout period. "
                 "This behavior is common in malicious or poorly configured infrastructure."
+            )
+            explanation_block["remediation_strategy"] = (
+                "Avoid entering any information if the site loads later; repeated timeouts are a warning sign."
+            )
+            explanation_block["verification_strategy"] = (
+                "Retry the scan later and compare with an independent uptime or reputation service."
             )
         else:
             explanation_block["report_paragraph"] = (
