@@ -1,6 +1,10 @@
 import asyncio
-from playwright.async_api import async_playwright
+import glob
 import os
+import time
+from urllib.parse import urljoin, urlparse
+
+from playwright.async_api import async_playwright
 
 from app.intelligence.redirect_intelligence import analyze_redirect_chain
 from app.intelligence.keyword_intelligence import analyze_keywords
@@ -10,10 +14,87 @@ from app.intelligence.credential_intelligence import analyze_credentials
 from app.dynamic_analysis.network_monitor import analyze_post_requests
 from app.dynamic_analysis.interaction_engine import simulate_interaction
 from app.dynamic_analysis.screenshots import ScreenshotSession
+from app.core.logger import logger
+from static_analysis.net_guard import is_private_ip
 
 
 SCREENSHOT_DIR = "screenshots"
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+SCREENSHOT_MAX_AGE_HOURS = float(os.getenv("SCREENSHOT_MAX_AGE_HOURS", "24"))
+MAX_JS_BYTES = 500_000
+
+
+def prune_old_screenshots(directory: str = SCREENSHOT_DIR, max_age_hours: float = SCREENSHOT_MAX_AGE_HOURS) -> int:
+    """Delete scan screenshots (*.png) older than max_age_hours so the volume
+    cannot fill the disk. Returns how many files were removed."""
+    cutoff = time.time() - max_age_hours * 3600
+    removed = 0
+    for path in glob.glob(os.path.join(directory, "*.png")):
+        try:
+            if os.path.getmtime(path) < cutoff:
+                os.remove(path)
+                removed += 1
+        except FileNotFoundError:
+            continue  # removed concurrently by another worker
+        except OSError as e:
+            logger.warning(f"Could not prune screenshot {path}: {e}")
+    return removed
+
+
+def request_record(request) -> dict:
+    """Network-log entry for one browser request. The body length comes from the
+    request body itself: Playwright's request.headers usually omits content-length."""
+    body = getattr(request, "post_data_buffer", None) or b""
+    return {
+        "method": request.method,
+        "url": request.url,
+        "content_length": len(body),
+    }
+
+
+def make_private_host_guard(blocked: list):
+    """page.route handler that keeps the sandbox off non-public addresses, so a
+    public page cannot steer Chromium into cloud metadata or the internal network.
+
+    Playwright does not call route handlers for server-side redirect hops, so for
+    navigations the guard fetches each hop itself (max_redirects=0), checks the
+    Location, and hands the response back; Chromium then follows the redirect as
+    a new request that comes through this guard again. Sub-resource redirects
+    are not re-checked here; the host egress firewall covers those."""
+    cache = {}
+
+    async def is_blocked(url: str) -> bool:
+        parsed = urlparse(url)
+        host = parsed.hostname
+        if parsed.scheme not in ("http", "https") or not host:
+            return False
+        if host not in cache:
+            cache[host] = await asyncio.to_thread(is_private_ip, url)
+        return cache[host]
+
+    async def guard(route):
+        request = route.request
+        url = request.url
+        if await is_blocked(url):
+            blocked.append(url)
+            await route.abort("blockedbyclient")
+            return
+
+        if request.is_navigation_request() and urlparse(url).scheme in ("http", "https"):
+            response = await route.fetch(max_redirects=0)
+            location = response.headers.get("location")
+            if 300 <= response.status < 400 and location:
+                target = urljoin(url, location)
+                if await is_blocked(target):
+                    blocked.append(target)
+                    await route.abort("blockedbyclient")
+                    return
+            await route.fulfill(response=response)
+            return
+
+        await route.continue_()
+
+    return guard
 
 
 def aggregate_js_findings(
@@ -67,22 +148,49 @@ def aggregate_js_findings(
 # so scans queue behind this gate. Raise MAX_CONCURRENT_BROWSERS on bigger hosts.
 MAX_CONCURRENT_BROWSERS = max(1, int(os.getenv("MAX_CONCURRENT_BROWSERS", "2")))
 BROWSER_QUEUE_TIMEOUT = float(os.getenv("BROWSER_QUEUE_TIMEOUT", "60"))
+# Total budget for one request (queue wait + scan). Must stay below the reverse
+# proxy's read timeout (nginx proxy_read_timeout 130s) so the client gets a real
+# answer instead of a 504 while Chromium keeps holding a browser slot.
+DYNAMIC_SCAN_TIMEOUT = float(os.getenv("DYNAMIC_SCAN_TIMEOUT", "110"))
+MIN_SCAN_SECONDS = 20.0
 _browser_gate = asyncio.Semaphore(MAX_CONCURRENT_BROWSERS)
 
 
+def _busy(reason: str) -> dict:
+    return {
+        "classification": "Busy",
+        "confidence": "Low",
+        "engine_error": {"type": "SandboxBusy"},
+        "correlation_signals": [reason],
+    }
+
+
 async def run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
-    """Run the sandbox, queueing behind the concurrency gate."""
+    """Run the sandbox, queueing behind the concurrency gate, within one deadline."""
+    loop = asyncio.get_running_loop()
+    started = loop.time()
     try:
-        await asyncio.wait_for(_browser_gate.acquire(), timeout=BROWSER_QUEUE_TIMEOUT)
+        await asyncio.wait_for(
+            _browser_gate.acquire(),
+            timeout=min(BROWSER_QUEUE_TIMEOUT, DYNAMIC_SCAN_TIMEOUT),
+        )
     except asyncio.TimeoutError:
-        return {
-            "classification": "Busy",
-            "confidence": "Low",
-            "engine_error": {"type": "SandboxBusy"},
-            "correlation_signals": ["Sandbox is at capacity; retry shortly."],
-        }
+        return _busy("Sandbox is at capacity; retry shortly.")
     try:
-        return await _run_dynamic_analysis(url, static_results)
+        remaining = DYNAMIC_SCAN_TIMEOUT - (loop.time() - started)
+        if remaining < MIN_SCAN_SECONDS:
+            return _busy("Sandbox queue took too long; retry shortly.")
+        try:
+            # Cancelling the scan unwinds async_playwright(), which closes Chromium.
+            return await asyncio.wait_for(_run_dynamic_analysis(url, static_results), timeout=remaining)
+        except asyncio.TimeoutError:
+            logger.warning(f"Dynamic scan exceeded {DYNAMIC_SCAN_TIMEOUT:.0f}s budget")
+            return {
+                "classification": "Timeout",
+                "confidence": "Low",
+                "engine_error": {"type": "SandboxTimeout"},
+                "correlation_signals": ["The page did not finish loading and interacting in time."],
+            }
     finally:
         _browser_gate.release()
 
@@ -106,7 +214,10 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
     if static_results is None:
         static_results = {}
 
+    prune_old_screenshots()
+
     browser = None
+    blocked_requests = []
 
     try:
         async with async_playwright() as p:
@@ -123,6 +234,9 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 viewport={"width": 1280, "height": 800},
             )
 
+            # Every request is checked, including redirect hops and sub-resources.
+            await context.route("**/*", make_private_host_guard(blocked_requests))
+
             page = await context.new_page()
 
             # ── Network monitoring ────────────────────────────────────────
@@ -131,16 +245,9 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
 
             async def handle_request(request):
                 try:
-                    headers = request.headers
-                    content_length = headers.get("content-length")
-                    content_length = int(content_length) if content_length else 0
-                    network_requests.append({
-                        "method": request.method,
-                        "url": request.url,
-                        "content_length": content_length,
-                    })
-                except Exception:
-                    pass
+                    network_requests.append(request_record(request))
+                except Exception as e:
+                    logger.debug(f"request record skipped: {e}")
 
             page.on("request", handle_request)
 
@@ -149,7 +256,7 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                     content_type = response.headers.get("content-type", "")
                     if "javascript" in content_type.lower():
                         body = await response.text()
-                        if body and len(body) < 500_000:
+                        if body and len(body) < MAX_JS_BYTES:
                             collected_js.append(body)
                 except Exception:
                     pass
@@ -191,6 +298,16 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
                 page_text = ""
 
             keyword_hits = analyze_keywords(page_text)
+
+            # Inline <script> blocks never arrive as JS responses, but phishing
+            # kits usually put their eval(atob(...)) payloads there.
+            try:
+                inline_js = await page.eval_on_selector_all(
+                    "script:not([src])", "els => els.map(e => e.textContent || '')"
+                )
+                collected_js.extend(js for js in inline_js if js and len(js) < MAX_JS_BYTES)
+            except Exception as e:
+                logger.debug(f"inline script collection skipped: {e}")
             results["keyword_hits"] = keyword_hits
 
             # ── Credential intelligence ───────────────────────────────────
@@ -243,13 +360,13 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             )
             results["confidence"]  = correlation_result.get("confidence", "Low")
             results["correlation_signals"] = correlation_result.get("signals", [])
+            results["blocked_requests"] = blocked_requests
 
             await browser.close()
             return results
 
     except Exception as e:
         import traceback
-        from app.core.logger import logger
 
         logger.error({
             "event": "dynamic_engine_crash",
@@ -257,11 +374,18 @@ async def _run_dynamic_analysis(url: str, static_results: dict = None) -> dict:
             "traceback": traceback.format_exc(),
         })
 
-        results["classification"] = "Execution Error"
         results["confidence"] = "Low"
-        results["correlation_signals"] = ["Correlation engine fallback triggered."]
+        results["blocked_requests"] = blocked_requests
         # Do NOT surface internal error details in the external response
-        results["engine_error"] = {"type": type(e).__name__}
+        if blocked_requests and not results["redirect_chain"]:
+            # The navigation itself was aborted by the private-address guard.
+            results["classification"] = "Blocked"
+            results["correlation_signals"] = ["The page redirected to a private or internal address; the scan was stopped."]
+            results["engine_error"] = {"type": "BlockedPrivateAddress"}
+        else:
+            results["classification"] = "Execution Error"
+            results["correlation_signals"] = ["Correlation engine fallback triggered."]
+            results["engine_error"] = {"type": type(e).__name__}
 
         if browser:
             try:
