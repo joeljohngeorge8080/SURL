@@ -133,3 +133,6 @@ graphify-out/
 # SSH keys
 *.pem
 pem file/
+
+# Local project memory exported for graphify (not shared)
+docs/memory/

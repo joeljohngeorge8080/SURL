@@ -181,68 +181,25 @@ surl/
 
 ## 🚀 Deployment (AWS EC2)
 
-This project is containerized using Docker and can be deployed on AWS EC2 with minimal setup.
+The full runbook is in [DEPLOY.md](DEPLOY.md). In short:
 
-### Prerequisites
-
-- AWS account
-- An EC2 instance (Ubuntu recommended)
-- Docker installed on the instance
-- A domain name (optional but recommended)
-
----
-
-### 1. Pull the Docker Image
+- CI (lint, tests, image build and `/health` smoke test) pushes
+  `ghcr.io/joeljohngeorge8080/surl:deploy` on every push to the `deploy` branch.
+- On the instance, `deploy/bootstrap.sh` installs Docker, nginx (TLS via certbot),
+  the egress firewall and a `surl-deploy.timer` that pulls new images automatically.
+- The container `surl_api` listens on `127.0.0.1:8001` only; nginx is the public entry point.
 
 ```bash
-docker pull joeljohngeorge8080/surl-api:latest
+git clone -b deploy https://github.com/joeljohngeorge8080/SURL.git ~/SURL && cd ~/SURL
+cp .env.example .env            # add VIRUSTOTAL_API_KEY, URLHAUS_API_KEY
+DOMAIN=your.domain CERT_EMAIL=you@example.com ./deploy/bootstrap.sh
 ```
-
----
-
-### 2. Run the Container
-
-```bash
-docker run -d \
-  --name surl-api \
-  -p 80:8000 \
-  --restart always \
-  joeljohngeorge8080/surl-api:latest
-```
-
-This maps port 80 on the EC2 instance to port 8000 inside the container.
-
----
-
-### 3. Configure Environment Variables
-
-```bash
-docker run -d \
-  --name surl-api \
-  -p 80:8000 \
-  --restart always \
-  -e DEBUG=False \
-  -e VIRUSTOTAL_API_KEY=your_key_here \
-  joeljohngeorge8080/surl-api:latest
-```
-
----
-
-### 4. Access the Application
-
-Once the container is running, access the site by clicking the URL below:
-
-[http://sentinelurl.site](http://sentinelurl.site)
-
----
-
-
 
 ### Notes
 
-- The app exposes `/health` for health checks — ALB and monitoring tools can probe this
-- View live logs with `docker logs -f surl-api`
-- Ensure the EC2 security group allows inbound traffic on ports **80** (HTTP) and **22** (SSH)
+- `/health` is the health check used by Docker, CI and monitoring.
+- Logs: `docker logs -f surl_api`; deploys: `journalctl -u surl-deploy -n 20`.
+- Security group: 80/443 from anywhere, 22 from your IP only. Never expose 8001.
 
 ---
 

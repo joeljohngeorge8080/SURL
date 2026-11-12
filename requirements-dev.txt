@@ -1,0 +1,6 @@
+# Test and lint tooling (not shipped in the image). CI installs this file.
+-r requirements.txt
+pytest==9.0.3
+pytest-asyncio==1.3.0
+ruff==0.8.6
+httpx==0.28.1

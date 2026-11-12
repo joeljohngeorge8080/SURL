@@ -1,0 +1,6 @@
+# Re-include the local memory export (gitignored) so it lands in the graph
+!docs/memory/
+!docs/memory/**
+# Vendored third-party template and macOS resource forks: not project knowledge
+aditional_website_template/
+._*
