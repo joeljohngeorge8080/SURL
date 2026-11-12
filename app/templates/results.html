@@ -533,7 +533,18 @@
     </div>
     <script>
 
-        const result = JSON.parse(localStorage.getItem("scanResult"));
+        function escapeHtml(value) {
+            return String(value ?? "").replace(/[&<>"']/g, c => ({
+                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+            })[c]);
+        }
+
+        let result = null;
+        try {
+            result = JSON.parse(localStorage.getItem("scanResult"));
+        } catch (e) {
+            console.error("Stored scan result is not valid JSON", e);
+        }
 
         if (result) {
 
@@ -631,9 +642,9 @@
                 table.innerHTML += `
             <tr>
                 <td>${index + 1}</td>
-                <td>${item.indicator || "-"}</td>
-                <td>${item.severity || "-"}</td>
-                <td>${item.remediation_strategy || "-"}</td>
+                <td>${escapeHtml(item.indicator || "-")}</td>
+                <td>${escapeHtml(item.severity || "-")}</td>
+                <td>${escapeHtml(item.remediation_strategy || "-")}</td>
             </tr>
         `;
             });
@@ -652,13 +663,13 @@
                 (result.detailed_analysis || []).forEach((item, index) => {
                     detailedContainer.innerHTML += `
                 <div class="analysis-item">
-                    <h6>${index + 1}. ${item.indicator}</h6>
+                    <h6>${index + 1}. ${escapeHtml(item.indicator)}</h6>
                     <strong>Technical Explanation:</strong>
-                    <p>${item.report_paragraph}</p>
+                    <p>${escapeHtml(item.report_paragraph)}</p>
                     <strong>Remediation Strategy:</strong>
-                    <p>${item.remediation_strategy}</p>
+                    <p>${escapeHtml(item.remediation_strategy || "-")}</p>
                     <strong>Verification Strategy:</strong>
-                    <p>${item.verification_strategy}</p>
+                    <p>${escapeHtml(item.verification_strategy || "-")}</p>
                 </div>
             `;
                 });
@@ -680,6 +691,19 @@
                     <li>Do not click embedded links within suspicious emails referencing this domain.</li>
                     <li>Report the domain to your organization's security team if accessed in a corporate environment.</li>
                     <li>Clear browser cache and monitor accounts if interaction already occurred.</li>
+                </ul>
+            `;
+                }
+                else if (result.severity === "Medium-High") {
+                    safetyContainer.innerHTML = `
+                <p>
+                This website shows several elevated risk indicators. Treat it as suspicious
+                until its ownership is confirmed.
+                </p>
+                <ul>
+                    <li>Do not enter passwords, payment details or one-time codes on this site.</li>
+                    <li>Reach the organisation through a bookmarked or officially published address instead.</li>
+                    <li>Run the dynamic analysis to observe the page's live behaviour.</li>
                 </ul>
             `;
                 }
@@ -727,20 +751,46 @@
                     "<span class='spinner-border spinner-border-sm' role='status' aria-hidden='true'></span>"
                 );
 
-                const result = JSON.parse(localStorage.getItem("scanResult"));
-                const url = result.url;
+                const resetButtons = () => {
+                    [runDynamicBtn, navFlaskBtn].forEach(btn => {
+                        if (!btn) return;
+                        if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+                        btn.dataset.loading = "false";
+                        btn.disabled = false;
+                        btn.classList.remove("disabled");
+                    });
+                };
 
-                const response = await fetch("/scan-dynamic", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url })
-                });
+                if (!result || !result.url) {
+                    resetButtons();
+                    alert("Run a URL scan first; there is no scanned URL to analyse.");
+                    return;
+                }
 
-                const data = await response.json();
+                try {
+                    const response = await fetch("/scan-dynamic", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ url: result.url })
+                    });
 
-                localStorage.setItem("dynamicResult", JSON.stringify(data));
+                    let data = null;
+                    try {
+                        data = await response.json();
+                    } catch (e) {
+                        throw new Error(`Dynamic analysis service unavailable (HTTP ${response.status}).`);
+                    }
+                    if (!response.ok && !(data && (data.error || data.dynamic_analysis))) {
+                        throw new Error((data && data.detail) ? String(data.detail) : `Dynamic analysis failed (HTTP ${response.status}).`);
+                    }
 
-                window.location.href = "/dynamic-results";
+                    localStorage.setItem("dynamicResult", JSON.stringify(data));
+                    window.location.href = "/dynamic-results";
+                } catch (error) {
+                    console.error(error);
+                    resetButtons();
+                    alert(error.message || "Could not reach the dynamic analysis service.");
+                }
             });
         }
 

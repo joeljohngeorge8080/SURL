@@ -971,6 +971,7 @@
     <script>
         window.addEventListener("scroll", () => {
             const navbar = document.querySelector(".navbar");
+            if (!navbar) return;
             if (window.scrollY > 50) {
                 navbar.style.background = "rgba(0,0,0,0.95)";
                 navbar.style.backdropFilter = "blur(8px)";
@@ -982,8 +983,9 @@
     </script>
     <script>
         window.addEventListener("scroll", function () {
-            const offset = window.pageYOffset;
-            document.querySelector(".site-shell").style.backgroundPositionY = offset * 0.3 + "px";
+            const shell = document.querySelector(".site-shell");
+            if (!shell) return;
+            shell.style.backgroundPositionY = window.pageYOffset * 0.3 + "px";
         });
     </script>
     <script>
@@ -1065,10 +1067,10 @@
                     body: JSON.stringify({ url: urlInput })
                 });
 
-                const data = await response.json();
+                const { ok, data, message } = await readScanResponse(response);
 
-                if (data.error) {
-                    showError(data.error);
+                if (!ok) {
+                    showError(message);
                     stopScanning();
                     return;
                 }
@@ -1158,12 +1160,12 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                const { ok, data, message } = await readScanResponse(response);
 
                 stopScanning();
 
-                if (data.error) {
-                    alert(data.error);
+                if (!ok) {
+                    alert(message);
                     return;
                 }
 
@@ -1229,19 +1231,50 @@
             });
         }
 
+        // Normalise a scan API response. Failed scans (429 rate limit, 422
+        // validation, 5xx, or an HTML error page from the proxy) must never be
+        // stored as a result: the results page would render them as risk 0 / LOW.
+        async function readScanResponse(response) {
+            let data = null;
+            try {
+                data = await response.json();
+            } catch (e) {
+                return { ok: false, data: null, message: `Scan service unavailable (HTTP ${response.status}). Please try again.` };
+            }
+            let message = null;
+            if (data && data.error) {
+                message = data.error;
+            } else if (data && data.detail) {
+                message = Array.isArray(data.detail)
+                    ? data.detail.map(d => (d.msg || "").replace(/^Value error, /, "")).join("; ")
+                    : String(data.detail);
+            } else if (!response.ok) {
+                message = `Scan failed (HTTP ${response.status}).`;
+            }
+            return { ok: !message, data, message };
+        }
+
         // Scan Selected URL
         async function scanSelected(url) {
+            try {
+                const response = await fetch("/scan-selected", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: url })
+                });
 
-            const response = await fetch("/scan-selected", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: url })
-            });
+                const { ok, data, message } = await readScanResponse(response);
+                if (!ok) {
+                    alert(message);
+                    return;
+                }
 
-            const data = await response.json();
-
-            localStorage.setItem("scanResult", JSON.stringify(data));
-            window.location.href = "/results";
+                localStorage.setItem("scanResult", JSON.stringify(data));
+                window.location.href = "/results";
+            } catch (error) {
+                console.error(error);
+                alert("Could not reach the scan service. Please try again.");
+            }
         }
 
 

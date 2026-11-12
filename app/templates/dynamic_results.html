@@ -534,7 +534,12 @@
     }
 
     // Retrieve dynamic result from localStorage
-    const dynamicResult = JSON.parse(localStorage.getItem("dynamicResult"));
+    let dynamicResult = null;
+    try {
+        dynamicResult = JSON.parse(localStorage.getItem("dynamicResult"));
+    } catch (e) {
+        console.error("Stored dynamic result is not valid JSON", e);
+    }
 
     // ============================================================
     // ERROR HANDLING
@@ -570,7 +575,27 @@
         const behaviorClass = data.behavior_classification || {};
         const classification = behaviorClass.classification || data.classification || "Unknown";
         const confidence = behaviorClass.confidence || data.confidence || "Low";
-        const reasoning = behaviorClass.reasoning || [];
+        // The engine reports its reasoning as correlation_signals.
+        const reasoning = behaviorClass.reasoning || data.correlation_signals || [];
+
+        // Busy / Timeout / Blocked / Execution Error mean the page was NOT analysed:
+        // say so up front instead of letting the empty sections read as "clean".
+        const INCOMPLETE = {
+            "Busy": "The sandbox was busy and this page was not analysed. Please retry in a minute.",
+            "Timeout": "The page took too long to load and interact with, so the analysis is incomplete.",
+            "Blocked": "The page redirected to a private or internal address, so the scan was stopped.",
+            "Execution Error": "The sandbox hit an error while analysing this page, so the results below are incomplete.",
+        };
+        if (INCOMPLETE[classification]) {
+            const banner = document.createElement("div");
+            banner.setAttribute("role", "alert");
+            banner.style.cssText = "margin:16px auto;max-width:1100px;padding:16px 20px;border-radius:10px;" +
+                "background:rgba(255,193,7,0.12);border:1px solid rgba(255,193,7,0.5);color:#ffc107;font-weight:600;";
+            banner.textContent = "Analysis incomplete: " + INCOMPLETE[classification];
+            const anchor = document.getElementById("urlDisplay");
+            const host = (anchor && anchor.closest("section, .container")) || document.body;
+            host.prepend(banner);
+        }
 
         if (classificationValue) {
             classificationValue.textContent = classification;
@@ -668,7 +693,7 @@
             if (phishingKeywords.length > 0) {
                 keywordHTML += "<h6>Phishing Keywords:</h6><ul>";
                 phishingKeywords.forEach((k) => {
-                    keywordHTML += `<li class="text-danger">${k}</li>`;
+                    keywordHTML += `<li class="text-danger">${escapeHtml(k)}</li>`;
                 });
                 keywordHTML += "</ul>";
             }
@@ -676,7 +701,7 @@
             if (paymentKeywords.length > 0) {
                 keywordHTML += "<h6>Payment Keywords:</h6><ul>";
                 paymentKeywords.forEach((k) => {
-                    keywordHTML += `<li class="text-warning">${k}</li>`;
+                    keywordHTML += `<li class="text-warning">${escapeHtml(k)}</li>`;
                 });
                 keywordHTML += "</ul>";
             }
@@ -684,7 +709,7 @@
             if (adultKeywords.length > 0) {
                 keywordHTML += "<h6>Adult Keywords:</h6><ul>";
                 adultKeywords.forEach((k) => {
-                    keywordHTML += `<li class="text-danger">${k}</li>`;
+                    keywordHTML += `<li class="text-danger">${escapeHtml(k)}</li>`;
                 });
                 keywordHTML += "</ul>";
             }
@@ -820,13 +845,13 @@
             const credentialRelated = jsIntel.credential_related || [];
             const summary = jsIntel.summary || "No suspicious script patterns detected.";
 
-            let jsHTML = `<p class='mb-3'><strong>Summary:</strong> ${summary}</p>`;
+            let jsHTML = `<p class='mb-3'><strong>Summary:</strong> ${escapeHtml(summary)}</p>`;
 
             if (highRisk.length > 0) {
                 jsHTML += "<div class='p-3 mb-3' style='background: rgba(220, 53, 69, 0.15); border: 1px solid rgba(220, 53, 69, 0.4); border-radius: 10px;'>";
                 jsHTML += "<h6 class='text-danger mb-2'>High Risk JavaScript Patterns Detected</h6><ul class='mb-0'>";
                 highRisk.forEach((item) => {
-                    jsHTML += `<li class='text-danger'>${item}</li>`;
+                    jsHTML += `<li class='text-danger'>${escapeHtml(item)}</li>`;
                 });
                 jsHTML += "</ul></div>";
             }
@@ -835,7 +860,7 @@
                 jsHTML += "<div class='p-3 mb-3' style='background: rgba(255, 193, 7, 0.15); border: 1px solid rgba(255, 193, 7, 0.4); border-radius: 10px;'>";
                 jsHTML += "<h6 class='text-warning mb-2'>Credential-related JavaScript Behavior Detected</h6><ul class='mb-0'>";
                 credentialRelated.forEach((item) => {
-                    jsHTML += `<li class='text-warning'>${item}</li>`;
+                    jsHTML += `<li class='text-warning'>${escapeHtml(item)}</li>`;
                 });
                 jsHTML += "</ul></div>";
             }
@@ -844,7 +869,7 @@
                 jsHTML += "<div class='p-3 mb-3' style='background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px;'>";
                 jsHTML += "<h6 class='mb-2'>Moderate Dynamic Script Behavior</h6><ul class='mb-0'>";
                 mediumRisk.forEach((item) => {
-                    jsHTML += `<li>${item}</li>`;
+                    jsHTML += `<li>${escapeHtml(item)}</li>`;
                 });
                 jsHTML += "</ul></div>";
             }
